@@ -34,6 +34,20 @@ includes these modules:
 All modules are opt-in through the **Settings** page. The integration does not
 rename, create, delete, or otherwise modify Home Assistant resources.
 
+### Recommended organization flow
+
+The Overview page presents the suggested maintenance order:
+
+1. Areas
+2. Zones
+3. Labels
+4. Categories
+5. Entity IDs
+6. Exposed & Aliases
+
+This is a practical navigation order, not a requirement. Each module can be
+opened independently whenever its native Home Assistant data is ready.
+
 ## Review model
 
 HA Organizer keeps technical compliance separate from human review:

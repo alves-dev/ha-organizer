@@ -12,7 +12,10 @@ async def async_register_panel(hass: HomeAssistant):
     icon_path = str(Path(__file__).parent / "icon.png")
     await hass.http.async_register_static_paths(
         [
-            StaticPathConfig("/ha_organizer/ha-organizer.js", path, True),
+            # Keep the development panel fresh after frontend updates. HA's
+            # resource URL is stable, so long-lived cache headers otherwise
+            # hide UI fixes such as dark-mode styles.
+            StaticPathConfig("/ha_organizer/ha-organizer.js", path, False),
             StaticPathConfig("/ha_organizer/icon.png", icon_path, True),
         ]
     )

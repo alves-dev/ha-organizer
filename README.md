@@ -116,4 +116,4 @@ emphasis in the panel.
 
 ## License
 
-No license has been selected for this early MVP yet.
+HA Organizer is distributed under the [MIT License](LICENSE).

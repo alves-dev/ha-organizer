@@ -7,21 +7,11 @@ from homeassistant.components.homeassistant.exposed_entities import (
     async_should_expose,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import (
-    area_registry as ar,
-)
-from homeassistant.helpers import (
-    category_registry as cr,
-)
-from homeassistant.helpers import (
-    label_registry as lr,
-)
-from homeassistant.helpers import (
-    device_registry as dr,
-)
-from homeassistant.helpers import (
-    entity_registry as er,
-)
+from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import category_registry as cr
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import label_registry as lr
 from homeassistant.helpers.storage import Store
 import voluptuous as vol
 

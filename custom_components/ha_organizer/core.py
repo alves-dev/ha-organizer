@@ -95,7 +95,7 @@ def _groups(items: list[dict], key_fn):
     return groups
 
 
-def categories(snapshot: dict, settings=None) -> list[dict]:
+def categories(snapshot: dict, settings=None) -> list[dict]:  # noqa: PLR0912
     settings = settings or {}
     settings = {
         "scopes": ["automation", "script"],
@@ -108,7 +108,10 @@ def categories(snapshot: dict, settings=None) -> list[dict]:
         **settings,
     }
     normalization = settings.get("normalization", {})
-    normalizer = lambda value: normalize(value, **normalization)
+
+    def normalizer(value):
+        return normalize(value, **normalization)
+
     configured_scopes = settings.get("scopes", ["automation", "script"])
     scopes = configured_scopes or ["automation", "script"]
     compare = settings.get("compare", len(configured_scopes) > 1)
@@ -129,7 +132,9 @@ def categories(snapshot: dict, settings=None) -> list[dict]:
                 },
             )
             row["names"].add(raw)
-            row["icons_by_scope"][scope] = value.get("icon") if isinstance(value, dict) else None
+            row["icons_by_scope"][scope] = (
+                value.get("icon") if isinstance(value, dict) else None
+            )
             if isinstance(value, dict) and value.get("icon"):
                 row["icons"].add(value["icon"])
             row["scopes"][scope] = True
@@ -146,7 +151,11 @@ def categories(snapshot: dict, settings=None) -> list[dict]:
                     sorted(row["names"]),
                 )
             )
-        missing = [scope for scope in scopes if not row["scopes"].get(scope)] if compare else []
+        missing = (
+            [scope for scope in scopes if not row["scopes"].get(scope)]
+            if compare
+            else []
+        )
         if missing:
             findings.append(
                 Finding(
@@ -156,7 +165,11 @@ def categories(snapshot: dict, settings=None) -> list[dict]:
                     missing,
                 )
             )
-        if compare and len(row["icons_by_scope"]) > 1 and len(set(row["icons_by_scope"].values())) > 1:
+        if (
+            compare
+            and len(row["icons_by_scope"]) > 1
+            and len(set(row["icons_by_scope"].values())) > 1
+        ):
             findings.append(
                 Finding(
                     "category_icon_variants",
@@ -184,14 +197,52 @@ def categories(snapshot: dict, settings=None) -> list[dict]:
                     sorted(row["names"]),
                 )
             )
-        if settings["case_policy"] == "lowercase" and category_name != category_name.lower():
-            findings.append(Finding("category_case_policy", "warning", "Nome deve usar apenas minúsculas", sorted(row["names"])))
-        if settings["case_policy"] == "uppercase" and category_name != category_name.upper():
-            findings.append(Finding("category_case_policy", "warning", "Nome deve usar apenas maiúsculas", sorted(row["names"])))
-        if not settings["allow_spaces"] and any(char.isspace() for char in category_name):
-            findings.append(Finding("category_spaces_policy", "warning", "Espaços não são permitidos no nome", sorted(row["names"])))
-        if not settings["allow_punctuation"] and any(not char.isalnum() and not char.isspace() for char in category_name):
-            findings.append(Finding("category_punctuation_policy", "warning", "Pontuação não é permitida no nome", sorted(row["names"])))
+        if (
+            settings["case_policy"] == "lowercase"
+            and category_name != category_name.lower()
+        ):
+            findings.append(
+                Finding(
+                    "category_case_policy",
+                    "warning",
+                    "Nome deve usar apenas minúsculas",
+                    sorted(row["names"]),
+                )
+            )
+        if (
+            settings["case_policy"] == "uppercase"
+            and category_name != category_name.upper()
+        ):
+            findings.append(
+                Finding(
+                    "category_case_policy",
+                    "warning",
+                    "Nome deve usar apenas maiúsculas",
+                    sorted(row["names"]),
+                )
+            )
+        if not settings["allow_spaces"] and any(
+            char.isspace() for char in category_name
+        ):
+            findings.append(
+                Finding(
+                    "category_spaces_policy",
+                    "warning",
+                    "Espaços não são permitidos no nome",
+                    sorted(row["names"]),
+                )
+            )
+        if not settings["allow_punctuation"] and any(
+            not char.isalnum() and not char.isspace() for char in category_name
+        ):
+            findings.append(
+                Finding(
+                    "category_punctuation_policy",
+                    "warning",
+                    "Pontuação não é permitida no nome",
+                    sorted(row["names"]),
+                )
+            )
         if settings["language"] != "any" and any(
             char.isalpha() and "LATIN" not in unicodedata.name(char, "")
             for char in category_name
@@ -200,7 +251,8 @@ def categories(snapshot: dict, settings=None) -> list[dict]:
                 Finding(
                     "category_language_policy",
                     "warning",
-                    f"Nome não parece usar o alfabeto esperado para {settings['language']}",
+                    "Nome não parece usar o alfabeto esperado para "
+                    f"{settings['language']}",
                     sorted(row["names"]),
                 )
             )
@@ -226,7 +278,10 @@ def categories(snapshot: dict, settings=None) -> list[dict]:
 
 def areas(snapshot: dict, settings=None) -> list[dict]:
     settings = settings or {}
-    normalizer = lambda value: normalize(value, **settings.get("normalization", {}))
+
+    def normalizer(value):
+        return normalize(value, **settings.get("normalization", {}))
+
     values = snapshot.get("areas", [])
     result = []
     by_name = _groups(values, lambda x: normalizer(x.get("name")))
@@ -307,7 +362,11 @@ def zones(snapshot: dict, settings=None) -> list[dict]:
             for x in by_center[(z.get("latitude"), z.get("longitude"), z.get("radius"))]
             if x is not z
         ]
-        if settings["detect_duplicate_geometry"] and dup and str(zid).casefold() != "home":
+        if (
+            settings["detect_duplicate_geometry"]
+            and dup
+            and str(zid).casefold() != "home"
+        ):
             findings.append(
                 Finding(
                     "duplicate_zone_geometry",
@@ -321,11 +380,29 @@ def zones(snapshot: dict, settings=None) -> list[dict]:
                 Finding("zone_name_missing", "warning", "Zona sem nome", [str(zid)])
             )
         if settings["require_icon"] and not z.get("icon"):
-            findings.append(Finding("zone_icon_required", "info", "Zona sem ícone", [str(zid)]))
+            findings.append(
+                Finding(
+                    "zone_icon_required", "info", "Zona sem ícone", [str(zid)]
+                )
+            )
         if settings["min_radius"] and (z.get("radius") or 0) < settings["min_radius"]:
-            findings.append(Finding("zone_min_radius", "warning", f"Raio menor que {settings['min_radius']} m", [str(zid)]))
+            findings.append(
+                Finding(
+                    "zone_min_radius",
+                    "warning",
+                    f"Raio menor que {settings['min_radius']} m",
+                    [str(zid)],
+                )
+            )
         if settings["max_radius"] and (z.get("radius") or 0) > settings["max_radius"]:
-            findings.append(Finding("zone_max_radius", "warning", f"Raio maior que {settings['max_radius']} m", [str(zid)]))
+            findings.append(
+                Finding(
+                    "zone_max_radius",
+                    "warning",
+                    f"Raio maior que {settings['max_radius']} m",
+                    [str(zid)],
+                )
+            )
         result.append(
             _item(
                 "zones",
@@ -355,7 +432,10 @@ def zones(snapshot: dict, settings=None) -> list[dict]:
 
 def labels(snapshot: dict, settings=None) -> list[dict]:
     settings = settings or {}
-    normalizer = lambda value: normalize(value, **settings.get("normalization", {}))
+
+    def normalizer(value):
+        return normalize(value, **settings.get("normalization", {}))
+
     values = snapshot.get("labels", [])
     by_name = _groups(values, lambda item: normalizer(item.get("name")))
     result = []
@@ -452,7 +532,10 @@ def entity_ids(snapshot: dict, settings=None) -> list[dict]:
 
 def exposed(snapshot: dict, settings=None) -> list[dict]:
     settings = settings or {}
-    normalizer = lambda value: normalize(value, **settings.get("normalization", {}))
+
+    def normalizer(value):
+        return normalize(value, **settings.get("normalization", {}))
+
     values = snapshot.get("exposed", [])
     entries = []
     for value in values:

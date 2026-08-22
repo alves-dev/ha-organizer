@@ -1,0 +1,55 @@
+[project]
+name = "ha-organizer"
+version = "2026.8.0"
+description = "Home Assistant custom integration for auditing organisation"
+requires-python = ">=3.14.2"
+dependencies = [
+  "homeassistant==2026.8.0",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.4.0",
+  "pytest-asyncio>=1.2.0",
+  "pytest-cov>=7.0.0",
+  "ruff>=0.13.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+src = ["custom_components"]
+
+[tool.ruff.lint]
+select = [
+  "B",
+  "C4",
+  "E",
+  "F",
+  "I",
+  "N",
+  "PLC",
+  "PLE",
+  "PLR",
+  "PLW",
+  "RUF",
+  "SIM",
+  "T20",
+  "UP",
+  "W",
+]
+ignore = [
+  "PLR0913",
+]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+known-first-party = ["custom_components"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]

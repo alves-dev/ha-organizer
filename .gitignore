@@ -1,3 +1,22 @@
 TODO.md
 
-examples
+examples/*
+!examples/icons/
+!examples/icons/**
+
+# Local development environments and generated files
+.venv/
+.idea/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local Home Assistant/runtime files
+home-assistant.log
+*.log
+.storage/
+.env
+.env.*

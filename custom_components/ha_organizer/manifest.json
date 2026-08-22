@@ -1,0 +1,10 @@
+{
+  "domain": "ha_organizer",
+  "name": "HA Organizer",
+  "version": "2026.8.0",
+  "documentation": "https://github.com/home-assistant",
+  "requirements": [],
+  "codeowners": [],
+  "config_flow": true,
+  "iot_class": "local_push"
+}

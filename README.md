@@ -1,5 +1,9 @@
 # HA Organizer
 
+<p align="center">
+  <img src="custom_components/ha_organizer/brand/dark_logo.png" alt="HA Organizer" width="180">
+</p>
+
 HA Organizer is a read-only Home Assistant custom integration for auditing the
 organization of your installation. It provides a single place to inspect naming
 consistency, duplicate or missing resources, review progress, and links to the

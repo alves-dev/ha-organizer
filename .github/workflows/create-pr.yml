@@ -1,0 +1,63 @@
+name: Create Pull Request
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  create-pr:
+    name: Create develop -> main PR
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PR_TOKEN || github.token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check branch diff
+        id: diff
+        run: |
+          ahead_by="$(gh api "repos/${GITHUB_REPOSITORY}/compare/main...develop" --jq '.ahead_by')"
+          echo "ahead_by=${ahead_by}" >> "${GITHUB_OUTPUT}"
+
+          if [ "${ahead_by}" = "0" ]; then
+            echo "No commits to promote from develop to main."
+          else
+            echo "develop is ${ahead_by} commit(s) ahead of main."
+          fi
+
+      - name: Check existing PR
+        id: existing-pr
+        if: steps.diff.outputs.ahead_by != '0'
+        run: |
+          pr_number="$(
+            gh pr list \
+              --base main \
+              --head develop \
+              --state open \
+              --json number \
+              --jq '.[0].number // ""'
+          )"
+          echo "number=${pr_number}" >> "${GITHUB_OUTPUT}"
+
+          if [ -n "${pr_number}" ]; then
+            echo "PR #${pr_number} already exists."
+          fi
+
+      - name: Create PR
+        if: steps.diff.outputs.ahead_by != '0' && steps.existing-pr.outputs.number == ''
+        run: |
+          gh pr create \
+            --base main \
+            --head develop \
+            --title "Merge develop into main" \
+            --body "Automatic pull request to update \`main\` with changes from \`develop\`."

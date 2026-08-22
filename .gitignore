@@ -1,5 +1,9 @@
 TODO.md
 
+# Local Home Assistant development files
+.storage/
+*.log
+
 examples/*
 !examples/icons/
 !examples/icons/**

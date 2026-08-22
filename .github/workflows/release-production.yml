@@ -1,0 +1,58 @@
+name: Production Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - custom_components/ha_organizer/manifest.json
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create release from main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Prepare release metadata
+        id: release
+        shell: bash
+        run: |
+          version="$(jq -r '.version // empty' custom_components/ha_organizer/manifest.json)"
+          if [ -z "$version" ]; then
+            echo "The integration manifest does not define a version." >&2
+            exit 1
+          fi
+          if [[ "$version" == *-dev ]]; then
+            echo "Development versions cannot be published: $version" >&2
+            exit 1
+          fi
+          tag="v${version}"
+          if git rev-parse "$tag" >/dev/null 2>&1 || git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "Tag already exists: $tag" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Create tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag -a "${{ steps.release.outputs.tag }}" -m "${{ steps.release.outputs.tag }}"
+          git push origin "${{ steps.release.outputs.tag }}"
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release.outputs.tag }}
+          name: ${{ steps.release.outputs.tag }}
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -431,7 +431,7 @@ def zones(snapshot: dict, settings=None) -> list[dict]:
 
 
 def labels(snapshot: dict, settings=None) -> list[dict]:
-    settings = settings or {}
+    settings = {"min_name_length": 1, "min_description_length": 0, **(settings or {})}
 
     def normalizer(value):
         return normalize(value, **settings.get("normalization", {}))
@@ -442,6 +442,12 @@ def labels(snapshot: dict, settings=None) -> list[dict]:
     for label in values:
         label_id = label.get("id") or label.get("name")
         findings = []
+        name = label.get("name") or label_id
+        description = label.get("description") or ""
+        if len(name.strip()) < settings["min_name_length"]:
+            findings.append(Finding("label_name_length", "warning", "Label name is shorter than the configured minimum", [str(label_id)]))
+        if len(description.strip()) < settings["min_description_length"]:
+            findings.append(Finding("label_description_length", "warning", "Label description is shorter than the configured minimum", [str(label_id)]))
         matching = by_name.get(normalizer(label.get("name")), [])
         if len(matching) > 1:
             findings.append(
@@ -456,11 +462,12 @@ def labels(snapshot: dict, settings=None) -> list[dict]:
             _item(
                 "labels",
                 label_id,
-                label.get("name") or label_id,
+                name,
                 label,
                 findings,
                 icon=label.get("icon"),
                 color=label.get("color"),
+                description=description,
             )
         )
     return result
@@ -612,6 +619,8 @@ def scan(snapshot: dict, config: dict, reviews=None) -> dict:
                 settings = {**config.get("categories", {}), **settings}
             if module == "zones":
                 settings = {**config.get("zones", {}), **settings}
+            if module == "labels":
+                settings = {**config.get("labels", {}), **settings}
             if module == "entity_ids":
                 settings = {
                     "pattern": config.get("entity_id_pattern", "{domain}.{entity}"),

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
 from homeassistant.components import websocket_api
 from homeassistant.components.homeassistant.const import DATA_EXPOSED_ENTITIES
 from homeassistant.components.homeassistant.exposed_entities import (
@@ -32,6 +34,7 @@ async def _store(hass):
             **DEFAULT_CONFIG,
             **config,
             "modules": {**DEFAULT_CONFIG["modules"], **config.get("modules", {})},
+            "labels": {**DEFAULT_CONFIG["labels"], **config.get("labels", {})},
         }
         return store, data
     return store, {
@@ -108,8 +111,11 @@ def _snapshot(hass):
     exposed = []
     exposed_entities = hass.data.get(DATA_EXPOSED_ENTITIES)
     if exposed_entities is not None:
-        entity_ids = set(exposed_entities.entities)
-        entity_ids.update(entities_reg.entities)
+        # The exposed-entities store only contains legacy entries. Registry
+        # options are the source of truth for entities with a unique_id, so
+        # inspect every known entity and let HA resolve both storage paths.
+        entity_ids = set(entities_reg.entities)
+        entity_ids.update(hass.states.async_entity_ids())
         for entity_id in sorted(entity_ids):
             assistants = {
                 assistant
@@ -117,9 +123,18 @@ def _snapshot(hass):
                 if async_should_expose(hass, assistant, entity_id)
             }
             if assistants:
-                exposed.append(
-                    {"entity_id": entity_id, "assistants": sorted(assistants)}
-                )
+                state = hass.states.get(entity_id)
+                registry_entry = entities_reg.async_get(entity_id)
+                exposed.append({
+                    "entity_id": entity_id,
+                    "name": (registry_entry.name if registry_entry else None)
+                    or (state.attributes.get("friendly_name") if state else None)
+                    or entity_id,
+                    "aliases": [alias for alias in (registry_entry.aliases or [])
+                                if isinstance(alias, str)]
+                    if registry_entry else [],
+                    "assistants": sorted(assistants),
+                })
     categories = {}
     category_registry = cr.async_get(hass)
     for scope in ("automation", "script"):
@@ -146,6 +161,7 @@ def _snapshot(hass):
             {
                 "id": label.label_id,
                 "name": label.name,
+                "description": getattr(label, "description", None),
                 "icon": getattr(label, "icon", None),
                 "color": getattr(label, "color", None),
             }
@@ -190,6 +206,28 @@ def async_register_websocket_commands(hass: HomeAssistant):
             **incoming,
             "modules": {**DEFAULT_CONFIG["modules"], **incoming.get("modules", {})},
         }
+        await store.async_save(data)
+        connection.send_result(msg["id"], data["config"])
+
+    @websocket_api.websocket_command({"type": "ha_organizer/reviews/reset"})
+    @websocket_api.async_response
+    async def reviews_reset(hass, connection, msg):
+        if not _admin(connection):
+            return connection.send_error(msg["id"], "not_allowed", "Administrator required")
+        store, data = await _store(hass)
+        data["reviews"] = {}
+        data["last_scan"] = None
+        await store.async_save(data)
+        connection.send_result(msg["id"], {"ok": True})
+
+    @websocket_api.websocket_command({"type": "ha_organizer/config/reset"})
+    @websocket_api.async_response
+    async def config_reset(hass, connection, msg):
+        if not _admin(connection):
+            return connection.send_error(msg["id"], "not_allowed", "Administrator required")
+        store, data = await _store(hass)
+        data["config"] = deepcopy(DEFAULT_CONFIG)
+        data["last_scan"] = None
         await store.async_save(data)
         connection.send_result(msg["id"], data["config"])
 
@@ -254,5 +292,5 @@ def async_register_websocket_commands(hass: HomeAssistant):
 
     # The decorator validates command messages; registration is explicit in the
     # WebSocket API and is required for the command to be discoverable.
-    for command in (config_get, config_update, do_scan, review_set, get_overview):
+    for command in (config_get, config_update, reviews_reset, config_reset, do_scan, review_set, get_overview):
         websocket_api.async_register_command(hass, command)

@@ -21,6 +21,10 @@ DEFAULT_CONFIG = {
         "max_radius": 0,
         "require_icon": False,
     },
+    "labels": {
+        "min_name_length": 1,
+        "min_description_length": 0,
+    },
     "entity_id_pattern": "{domain}.{area}_{device}_{entity}",
     "entity_id_mode": "builder",
     "excluded_domains": [],

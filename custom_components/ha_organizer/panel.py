@@ -25,7 +25,7 @@ async def async_register_panel(hass: HomeAssistant):
         webcomponent_name="ha-organizer",
         sidebar_title="HA Organizer",
         sidebar_icon="mdi:format-list-checks",
-        module_url="/ha_organizer/ha-organizer.js",
+        module_url="/ha_organizer/ha-organizer.js?v=release",
         embed_iframe=False,
         require_admin=True,
     )

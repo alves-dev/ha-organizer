@@ -6,6 +6,8 @@
 - Consultar sempre o arquivo `TODO.md` na raiz antes de iniciar uma nova tarefa. Os itens desse arquivo fazem parte do escopo prioritário de ajustes.
 - Para investigar falhas encontradas durante os testes locais do usuário, consultar o log do Home Assistant em:
   `/home/alves-dev/projects/others/core/config/home-assistant.log`
+- O agente possui acesso ao Home Assistant local por MCP/Chrome DevTools para testes exploratórios da integração. Usar `http://localhost:8123`, autenticar com `igor` / `dev` e validar a UI, console e rede quando necessário. Essa credencial é exclusiva do ambiente local de teste e não deve ser reutilizada fora dele.
+- O Home Assistant local pode ser iniciado e parado pelo terminal no diretório `/home/alves-dev/projects/others/core`, usando `uv run --project . python -m homeassistant --config config` (ou a configuração equivalente do PyCharm). Para substituir arquivos da integração, parar o processo antes e iniciá-lo novamente após a cópia.
 - Não alterar o projeto de referência em `/home/alves-dev/projects/python/ia-usage`.
 - Alterações devem permanecer neste repositório, exceto quando o usuário solicitar explicitamente uma operação de cópia ou implantação.
 

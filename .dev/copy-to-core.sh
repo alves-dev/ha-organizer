@@ -14,4 +14,9 @@ sudo mkdir -p "$TARGET_DIR"
 sudo find "$TARGET_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
 sudo cp -a "$SOURCE_DIR"/. "$TARGET_DIR"/
 
-echo "Copied ha_organizer to $TARGET_DIR"
+BUILD_ID="$(date '+%Y%m%d%H%M%S')"
+BUILD_TIME="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+sudo sed -i "s|__HA_ORGANIZER_BUILD_TIME__|$BUILD_TIME|g" "$TARGET_DIR/frontend/ha-organizer.js"
+sudo sed -i "s|v=release|v=$BUILD_ID|g" "$TARGET_DIR/panel.py"
+
+echo "Copied ha_organizer to $TARGET_DIR at $BUILD_TIME"

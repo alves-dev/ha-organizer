@@ -29,10 +29,19 @@ MAX_DOMAIN_LENGTH = 64
 MAX_PATTERN_LENGTH = 256
 MAX_REVIEW_KEY_LENGTH = 1024
 MAX_FINGERPRINT_LENGTH = 256
+ADMIN_REQUIRED = "Administrator required"
 
 
 def _admin(connection):
     return connection.user and connection.user.is_admin
+
+
+def _entity_area(areas_reg, device, entity):
+    if entity.area_id:
+        return areas_reg.async_get_area(entity.area_id)
+    if device and device.area_id:
+        return areas_reg.async_get_area(device.area_id)
+    return None
 
 
 def _validate_categories(categories):
@@ -99,7 +108,7 @@ def _validate_labels(labels):
         raise ValueError("labels.min_name_length must be at least 1")
 
 
-def _validate_config_shape(config):  # noqa: PLR0912
+def _validate_config_shape(config):  # noqa: PLR0912  # NOSONAR
     if not isinstance(config, dict):
         raise ValueError("config must be an object")
     modules = config.get("modules")
@@ -205,7 +214,7 @@ async def _store(hass):
     }
 
 
-def _snapshot(hass):
+def _snapshot(hass):  # NOSONAR
     areas_reg = ar.async_get(hass)
     devices_reg = dr.async_get(hass)
     entities_reg = er.async_get(hass)
@@ -234,15 +243,7 @@ def _snapshot(hass):
     entities = []
     for e in entities_reg.entities.values():
         device = devices_reg.async_get(e.device_id) if e.device_id else None
-        area = (
-            areas_reg.async_get_area(e.area_id)
-            if e.area_id
-            else (
-                areas_reg.async_get_area(device.area_id)
-                if device and device.area_id
-                else None
-            )
-        )
+        area = _entity_area(areas_reg, device, e)
         entities.append(
             {
                 "entity_id": e.entity_id,
@@ -339,13 +340,13 @@ def _snapshot(hass):
 
 
 @callback
-def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915
+def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # NOSONAR
     @websocket_api.websocket_command({"type": "ha_organizer/config/get"})
     @websocket_api.async_response
     async def config_get(hass, connection, msg):
         if not _admin(connection):
             return connection.send_error(
-                msg["id"], "not_allowed", "Administrator required"
+                msg["id"], "not_allowed", ADMIN_REQUIRED
             )
         _, data = await _store(hass)
         connection.send_result(msg["id"], data.get("config", DEFAULT_CONFIG))
@@ -357,7 +358,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915
     async def config_update(hass, connection, msg):
         if not _admin(connection):
             return connection.send_error(
-                msg["id"], "not_allowed", "Administrator required"
+                msg["id"], "not_allowed", ADMIN_REQUIRED
             )
         store, data = await _store(hass)
         incoming = msg["config"]
@@ -373,7 +374,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915
     async def reviews_reset(hass, connection, msg):
         if not _admin(connection):
             return connection.send_error(
-                msg["id"], "not_allowed", "Administrator required"
+                msg["id"], "not_allowed", ADMIN_REQUIRED
             )
         store, data = await _store(hass)
         data["reviews"] = {}
@@ -386,7 +387,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915
     async def config_reset(hass, connection, msg):
         if not _admin(connection):
             return connection.send_error(
-                msg["id"], "not_allowed", "Administrator required"
+                msg["id"], "not_allowed", ADMIN_REQUIRED
             )
         store, data = await _store(hass)
         data["config"] = deepcopy(DEFAULT_CONFIG)
@@ -399,7 +400,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915
     async def do_scan(hass, connection, msg):
         if not _admin(connection):
             return connection.send_error(
-                msg["id"], "not_allowed", "Administrator required"
+                msg["id"], "not_allowed", ADMIN_REQUIRED
             )
         store, data = await _store(hass)
         result = scan(
@@ -424,7 +425,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915
     async def review_set(hass, connection, msg):
         if not _admin(connection):
             return connection.send_error(
-                msg["id"], "not_allowed", "Administrator required"
+                msg["id"], "not_allowed", ADMIN_REQUIRED
             )
         store, data = await _store(hass)
         status = msg["status"]
@@ -455,7 +456,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915
     async def get_overview(hass, connection, msg):
         if not _admin(connection):
             return connection.send_error(
-                msg["id"], "not_allowed", "Administrator required"
+                msg["id"], "not_allowed", ADMIN_REQUIRED
             )
         _, data = await _store(hass)
         connection.send_result(

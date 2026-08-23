@@ -544,22 +544,29 @@ def exposed(snapshot: dict, settings=None) -> list[dict]:
         return normalize(value, **settings.get("normalization", {}))
 
     values = snapshot.get("exposed", [])
-    entries = []
+    entities = {}
+    names_by_key = {}
     for value in values:
         eid = value.get("entity_id", "")
         names = [
             value.get("name") or value.get("friendly_name") or "",
             *(value.get("aliases") or []),
         ]
+        names = list(dict.fromkeys(name for name in names if name))
+        if not eid or not names:
+            continue
+        entities[eid] = names
         for name in names:
-            if name:
-                entries.append((normalizer(name), eid, name))
-    grouped = _groups(entries, lambda x: x[0])
+            names_by_key.setdefault(normalizer(name), set()).add(eid)
+
     result = []
-    for key, group in grouped.items():
-        refs = sorted({x[1] for x in group})
+    for eid, names in entities.items():
+        title = names[0]
+        key = normalizer(title)
         findings = []
-        if len(refs) > 1:
+        collisions = {normalizer(name) for name in names if len(names_by_key.get(normalizer(name), ())) > 1}
+        if collisions:
+            refs = sorted({ref for collision in collisions for ref in names_by_key[collision]})
             findings.append(
                 Finding(
                     "exposed_name_collision",
@@ -568,16 +575,16 @@ def exposed(snapshot: dict, settings=None) -> list[dict]:
                     refs,
                 )
             )
-        relevant = {"key": key, "entries": sorted(group)}
+        relevant = {"key": key, "entries": [{"entity_id": eid, "name": name} for name in names]}
         result.append(
             _item(
                 "exposed",
                 key,
-                group[0][2],
+                title,
                 relevant,
                 findings,
-                entities=refs,
-                entries=[{"entity_id": e, "name": n} for _, e, n in group],
+                entities=[eid],
+                entries=relevant["entries"],
             )
         )
     return result
@@ -655,10 +662,23 @@ def overview(result: dict) -> dict:
             )
         }
 
+    module_progress = {}
+    for module, items in result.get("modules", {}).items():
+        reviewed = sum(
+            item.get("review_status") in ("reviewed", "ignored")
+            for item in items
+        )
+        module_progress[module] = {
+            "total": len(items),
+            "reviewed": reviewed,
+            "progress": reviewed / len(items) if items else 1,
+        }
+
     return {
         "total": total,
         "review_progress": len(current) / total if total else 1,
         "compliance": counts("compliance_status"),
         "review": counts("review_status"),
         "stale": [i for i in all_items if i.get("review_status") == "stale"],
+        "module_progress": module_progress,
     }

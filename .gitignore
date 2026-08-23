@@ -4,10 +4,6 @@ TODO.md
 .storage/
 *.log
 
-examples/*
-!examples/icons/
-!examples/icons/**
-
 # Local development environments and generated files
 .venv/
 .idea/

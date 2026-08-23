@@ -445,9 +445,23 @@ def labels(snapshot: dict, settings=None) -> list[dict]:
         name = label.get("name") or label_id
         description = label.get("description") or ""
         if len(name.strip()) < settings["min_name_length"]:
-            findings.append(Finding("label_name_length", "warning", "Label name is shorter than the configured minimum", [str(label_id)]))
+            findings.append(
+                Finding(
+                    "label_name_length",
+                    "warning",
+                    "Label name is shorter than the configured minimum",
+                    [str(label_id)],
+                )
+            )
         if len(description.strip()) < settings["min_description_length"]:
-            findings.append(Finding("label_description_length", "warning", "Label description is shorter than the configured minimum", [str(label_id)]))
+            findings.append(
+                Finding(
+                    "label_description_length",
+                    "warning",
+                    "Label description is shorter than the configured minimum",
+                    [str(label_id)],
+                )
+            )
         matching = by_name.get(normalizer(label.get("name")), [])
         if len(matching) > 1:
             findings.append(
@@ -545,7 +559,8 @@ def exposed(snapshot: dict, settings=None) -> list[dict]:
 
     values = snapshot.get("exposed", [])
     entities = {}
-    names_by_key = {}
+    entries_by_key = {}
+    keys_by_entity = {}
     for value in values:
         eid = value.get("entity_id", "")
         names = [
@@ -557,16 +572,39 @@ def exposed(snapshot: dict, settings=None) -> list[dict]:
             continue
         entities[eid] = names
         for name in names:
-            names_by_key.setdefault(normalizer(name), set()).add(eid)
+            key = normalizer(name)
+            entries_by_key.setdefault(key, []).append((eid, name))
+            keys_by_entity.setdefault(eid, set()).add(key)
 
     result = []
-    for eid, names in entities.items():
-        title = names[0]
+    unvisited = set(entries_by_key)
+    while unvisited:
+        start = unvisited.pop()
+        component = {start}
+        pending = [start]
+        while pending:
+            key = pending.pop()
+            entity_ids = {eid for eid, _ in entries_by_key[key]}
+            linked = {
+                linked_key
+                for eid in entity_ids
+                for linked_key in keys_by_entity[eid]
+            }
+            new_keys = linked & unvisited
+            component.update(new_keys)
+            unvisited -= new_keys
+            pending.extend(new_keys)
+
+        entries = [
+            entry
+            for key in component
+            for entry in entries_by_key[key]
+        ]
+        refs = sorted({eid for eid, _ in entries})
+        title = next(entities[eid][0] for eid in refs)
         key = normalizer(title)
         findings = []
-        collisions = {normalizer(name) for name in names if len(names_by_key.get(normalizer(name), ())) > 1}
-        if collisions:
-            refs = sorted({ref for collision in collisions for ref in names_by_key[collision]})
+        if len(refs) > 1:
             findings.append(
                 Finding(
                     "exposed_name_collision",
@@ -575,7 +613,12 @@ def exposed(snapshot: dict, settings=None) -> list[dict]:
                     refs,
                 )
             )
-        relevant = {"key": key, "entries": [{"entity_id": eid, "name": name} for name in names]}
+        relevant = {
+            "key": key,
+            "entries": [
+                {"entity_id": eid, "name": name} for eid, name in entries
+            ],
+        }
         result.append(
             _item(
                 "exposed",
@@ -583,7 +626,7 @@ def exposed(snapshot: dict, settings=None) -> list[dict]:
                 title,
                 relevant,
                 findings,
-                entities=[eid],
+                entities=refs,
                 entries=relevant["entries"],
             )
         )

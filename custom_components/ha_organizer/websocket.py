@@ -29,25 +29,47 @@ def _merge_config(incoming):
     config = deepcopy(DEFAULT_CONFIG)
     config.update(incoming)
     config["modules"] = {**DEFAULT_CONFIG["modules"], **incoming.get("modules", {})}
-    config["categories"] = {**DEFAULT_CONFIG["categories"], **incoming.get("categories", {})}
+    config["categories"] = {
+        **DEFAULT_CONFIG["categories"],
+        **incoming.get("categories", {}),
+    }
     config["zones"] = {**DEFAULT_CONFIG["zones"], **incoming.get("zones", {})}
     config["labels"] = {**DEFAULT_CONFIG["labels"], **incoming.get("labels", {})}
-    if not isinstance(config["categories"].get("min_length"), (int, float)) or isinstance(config["categories"].get("min_length"), bool) or config["categories"]["min_length"] < 0:
+    if (
+        not isinstance(config["categories"].get("min_length"), (int, float))
+        or isinstance(config["categories"].get("min_length"), bool)
+        or config["categories"]["min_length"] < 0
+    ):
         raise ValueError("categories.min_length must be a non-negative number")
     if config["categories"].get("language") not in ("any", "pt-BR", "en", "es"):
         raise ValueError("categories.language is invalid")
     if config["categories"].get("case_policy") not in ("any", "lowercase", "uppercase"):
         raise ValueError("categories.case_policy is invalid")
-    for section, fields in (("categories", ("require_icon", "allow_spaces", "allow_punctuation")), ("zones", ("detect_duplicate_geometry", "require_icon"))):
+    for section, fields in (
+        ("categories", ("require_icon", "allow_spaces", "allow_punctuation")),
+        ("zones", ("detect_duplicate_geometry", "require_icon")),
+    ):
         if any(not isinstance(config[section].get(field), bool) for field in fields):
             raise ValueError(f"{section} boolean settings are invalid")
-    for section, fields in (("zones", ("min_radius", "max_radius")), ("labels", ("min_name_length", "min_description_length"))):
+    for section, fields in (
+        ("zones", ("min_radius", "max_radius")),
+        ("labels", ("min_name_length", "min_description_length")),
+    ):
         for field in fields:
             value = config[section].get(field)
-            if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or value < 0
+            ):
                 raise ValueError(f"{section}.{field} must be a non-negative number")
-    if config["zones"]["max_radius"] and config["zones"]["max_radius"] < config["zones"]["min_radius"]:
-        raise ValueError("zones.max_radius must be zero or greater than zones.min_radius")
+    if (
+        config["zones"]["max_radius"]
+        and config["zones"]["max_radius"] < config["zones"]["min_radius"]
+    ):
+        raise ValueError(
+            "zones.max_radius must be zero or greater than zones.min_radius"
+        )
     if config["labels"]["min_name_length"] < 1:
         raise ValueError("labels.min_name_length must be at least 1")
     return config
@@ -235,7 +257,9 @@ def async_register_websocket_commands(hass: HomeAssistant):
     @websocket_api.async_response
     async def reviews_reset(hass, connection, msg):
         if not _admin(connection):
-            return connection.send_error(msg["id"], "not_allowed", "Administrator required")
+            return connection.send_error(
+                msg["id"], "not_allowed", "Administrator required"
+            )
         store, data = await _store(hass)
         data["reviews"] = {}
         data["last_scan"] = None
@@ -246,7 +270,9 @@ def async_register_websocket_commands(hass: HomeAssistant):
     @websocket_api.async_response
     async def config_reset(hass, connection, msg):
         if not _admin(connection):
-            return connection.send_error(msg["id"], "not_allowed", "Administrator required")
+            return connection.send_error(
+                msg["id"], "not_allowed", "Administrator required"
+            )
         store, data = await _store(hass)
         data["config"] = deepcopy(DEFAULT_CONFIG)
         data["last_scan"] = None
@@ -314,5 +340,13 @@ def async_register_websocket_commands(hass: HomeAssistant):
 
     # The decorator validates command messages; registration is explicit in the
     # WebSocket API and is required for the command to be discoverable.
-    for command in (config_get, config_update, reviews_reset, config_reset, do_scan, review_set, get_overview):
+    for command in (
+        config_get,
+        config_update,
+        reviews_reset,
+        config_reset,
+        do_scan,
+        review_set,
+        get_overview,
+    ):
         websocket_api.async_register_command(hass, command)

@@ -1,4 +1,4 @@
-# HA Organizer — Especificação do MVP
+# HA Organizer — Especificação do beta
 
 ## 1. Contexto
 
@@ -8,7 +8,7 @@ O **HA Organizer** será uma custom integration que adiciona um painel próprio 
 
 O nome é provisório e não deve bloquear a implementação.
 
-## 2. Objetivo do MVP
+## 2. Objetivo do beta
 
 Entregar uma central visual que permita ao administrador:
 
@@ -22,9 +22,9 @@ Entregar uma central visual que permita ao administrador:
 
 ## 3. Princípios
 
-1. **Read-only sobre o Home Assistant:** o MVP não renomeia, cria, remove ou atualiza recursos nativos.
+1. **Read-only sobre o Home Assistant:** o beta não renomeia, cria, remove ou atualiza recursos nativos.
 2. **Persistência apenas do próprio Organizer:** preferências, regras, progresso, justificativas e fingerprints podem ser armazenados pela integração.
-3. **Determinístico:** não haverá IA no MVP.
+3. **Determinístico:** não haverá IA no beta.
 4. **Opt-in por módulo:** o usuário escolhe quais revisões deseja ativar.
 5. **Progresso confiável:** uma revisão deve ficar desatualizada se os dados que a originaram mudarem.
 6. **Explicável:** toda issue deve informar o que foi encontrado, por que importa e quais recursos estão envolvidos.
@@ -32,7 +32,7 @@ Entregar uma central visual que permita ao administrador:
 
 ## 4. Escopo funcional
 
-O MVP terá os módulos:
+O beta terá os módulos:
 
 1. Overview
 2. Categories
@@ -73,7 +73,7 @@ Definido automaticamente a cada análise:
 - Se uma divergência desaparecer, `compliance_status` passa automaticamente para `compliant`.
 - Um item `compliant` pode continuar `pending`: conformidade e revisão são conceitos distintos.
 - O usuário pode revisar novamente um item `stale`, gerando um novo fingerprint.
-- Se o recurso não existir mais, remover o item ativo do inventário. O histórico não é obrigatório no MVP.
+- Se o recurso não existir mais, remover o item ativo do inventário. O histórico não é obrigatório no beta.
 
 ### 5.4 Fingerprint
 
@@ -104,8 +104,8 @@ Preferências de normalização sugeridas:
 - comparação case-insensitive;
 - ignorar acentos;
 - normalizar espaços, hífens e underscores;
-- comparar singular/plural fica fora do MVP;
-- similaridade semântica fica fora do MVP.
+- comparar singular/plural fica fora do beta;
+- similaridade semântica fica fora do beta.
 
 ## 7. Overview
 
@@ -132,7 +132,7 @@ Página inicial com visão consolidada.
 
 ### 8.1 Ativação
 
-O usuário habilita a revisão de categorias e escolhe os escopos a comparar. No MVP:
+O usuário habilita a revisão de categorias e escolhe os escopos a comparar. No beta:
 
 - automations;
 - scripts.
@@ -234,13 +234,13 @@ Evitar exibir coordenadas com destaque desnecessário. Elas são dados potencial
 - sobreposição relevante entre zonas como `attention`, nunca como erro automático;
 - raio muito pequeno ou muito grande somente se o usuário habilitar limites explícitos;
 - zona nova ou alterada depois de revisada;
-- listagem de entidades `person` ou `device_tracker` relacionadas não é necessária no MVP, mas a arquitetura não deve impedir essa evolução.
+- listagem de entidades `person` ou `device_tracker` relacionadas não é necessária no beta, mas a arquitetura não deve impedir essa evolução.
 
 ### 10.4 Observações
 
 - A zona `home` pode exigir tratamento especial e não deve ser considerada uma duplicidade comum sem análise específica.
 - Zonas sobrepostas podem ser intencionais; portanto, devem poder ser revisadas ou ignoradas.
-- O MVP não precisa analisar automações que usam cada zona.
+- O beta não precisa analisar automações que usam cada zona.
 
 ## 11. Entity IDs
 
@@ -290,7 +290,7 @@ O padrão esperado é uma sugestão visual, não uma ação de rename.
 
 ## 12. Exposed Entities & Aliases
 
-Este módulo faz parte obrigatória do MVP, mas continua sem análise por IA.
+Este módulo faz parte obrigatória do beta, mas continua sem análise por IA.
 
 ### 12.1 Objetivo
 
@@ -325,7 +325,7 @@ Referência: <https://github.com/home-assistant/core/blob/dev/homeassistant/comp
 - entidades homônimas sem área, ou na mesma área, com maior severidade;
 - entidade exposta que está desabilitada, indisponível ou não existe mais, quando detectável;
 - entidade exposta sem alias não é, por padrão, um problema;
-- aliases semanticamente semelhantes ficam fora do MVP.
+- aliases semanticamente semelhantes ficam fora do beta.
 
 ### 12.4 Agrupamento de ambiguidades
 
@@ -490,7 +490,7 @@ Cada módulo deve manter uma estrutura consistente:
 - “Conforme” significa que as regras automáticas foram atendidas.
 - “Ignorado” significa uma exceção consciente.
 - “Desatualizado” significa que o recurso mudou desde a revisão.
-- Não usar “Resolvido” no MVP, pois a integração não executa nem necessariamente consegue confirmar a correção pretendida pelo usuário.
+- Não usar “Resolvido” no beta, pois a integração não executa nem necessariamente consegue confirmar a correção pretendida pelo usuário.
 
 ## 16. Severidade de findings
 
@@ -509,10 +509,10 @@ Se a conclusão depender do contexto humano, preferir `attention` no item e `war
 - não registrar aliases, coordenadas ou nomes de áreas em logs normais;
 - sanitizar logs de erro;
 - não expor coordenadas completas no Overview;
-- nenhuma telemetria no MVP;
+- nenhuma telemetria no beta;
 - nenhuma IA ou API externa.
 
-## 18. Fora do escopo do MVP
+## 18. Fora do escopo do beta
 
 - alterações automáticas em recursos do Home Assistant;
 - correção em lote;
@@ -596,4 +596,4 @@ Ordem sugerida para reduzir risco:
 - virtualização ou paginação das tabelas;
 - se itens automaticamente conformes entram no denominador do progresso de revisão.
 
-Para o último ponto, a recomendação inicial é: todos os itens visíveis entram no progresso, mas a UI deve permitir “marcar todos os conformes como revisados” somente dentro do Organizer. Essa ação não altera o Home Assistant e pode ser descartada se complicar o MVP.
+Para o último ponto, a recomendação inicial é: todos os itens visíveis entram no progresso, mas a UI deve permitir “marcar todos os conformes como revisados” somente dentro do Organizer. Essa ação não altera o Home Assistant e pode ser descartada se complicar o beta.

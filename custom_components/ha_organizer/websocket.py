@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
 from homeassistant.components import websocket_api
 from homeassistant.components.homeassistant.const import DATA_EXPOSED_ENTITIES
 from homeassistant.components.homeassistant.exposed_entities import (
@@ -7,21 +9,11 @@ from homeassistant.components.homeassistant.exposed_entities import (
     async_should_expose,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import (
-    area_registry as ar,
-)
-from homeassistant.helpers import (
-    category_registry as cr,
-)
-from homeassistant.helpers import (
-    label_registry as lr,
-)
-from homeassistant.helpers import (
-    device_registry as dr,
-)
-from homeassistant.helpers import (
-    entity_registry as er,
-)
+from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import category_registry as cr
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import label_registry as lr
 from homeassistant.helpers.storage import Store
 import voluptuous as vol
 
@@ -33,16 +25,62 @@ def _admin(connection):
     return connection.user and connection.user.is_admin
 
 
+def _merge_config(incoming):
+    config = deepcopy(DEFAULT_CONFIG)
+    config.update(incoming)
+    config["modules"] = {**DEFAULT_CONFIG["modules"], **incoming.get("modules", {})}
+    config["categories"] = {
+        **DEFAULT_CONFIG["categories"],
+        **incoming.get("categories", {}),
+    }
+    config["zones"] = {**DEFAULT_CONFIG["zones"], **incoming.get("zones", {})}
+    config["labels"] = {**DEFAULT_CONFIG["labels"], **incoming.get("labels", {})}
+    if (
+        not isinstance(config["categories"].get("min_length"), (int, float))
+        or isinstance(config["categories"].get("min_length"), bool)
+        or config["categories"]["min_length"] < 0
+    ):
+        raise ValueError("categories.min_length must be a non-negative number")
+    if config["categories"].get("language") not in ("any", "pt-BR", "en", "es"):
+        raise ValueError("categories.language is invalid")
+    if config["categories"].get("case_policy") not in ("any", "lowercase", "uppercase"):
+        raise ValueError("categories.case_policy is invalid")
+    for section, fields in (
+        ("categories", ("require_icon", "allow_spaces", "allow_punctuation")),
+        ("zones", ("detect_duplicate_geometry", "require_icon")),
+    ):
+        if any(not isinstance(config[section].get(field), bool) for field in fields):
+            raise ValueError(f"{section} boolean settings are invalid")
+    for section, fields in (
+        ("zones", ("min_radius", "max_radius")),
+        ("labels", ("min_name_length", "min_description_length")),
+    ):
+        for field in fields:
+            value = config[section].get(field)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or value < 0
+            ):
+                raise ValueError(f"{section}.{field} must be a non-negative number")
+    if (
+        config["zones"]["max_radius"]
+        and config["zones"]["max_radius"] < config["zones"]["min_radius"]
+    ):
+        raise ValueError(
+            "zones.max_radius must be zero or greater than zones.min_radius"
+        )
+    if config["labels"]["min_name_length"] < 1:
+        raise ValueError("labels.min_name_length must be at least 1")
+    return config
+
+
 async def _store(hass):
     store = Store(hass, VERSION, f"{DOMAIN}.data", private=True)
     data = await store.async_load()
     if data:
         config = data.get("config", {})
-        data["config"] = {
-            **DEFAULT_CONFIG,
-            **config,
-            "modules": {**DEFAULT_CONFIG["modules"], **config.get("modules", {})},
-        }
+        data["config"] = _merge_config(config)
         return store, data
     return store, {
         "schema_version": VERSION,
@@ -118,8 +156,11 @@ def _snapshot(hass):
     exposed = []
     exposed_entities = hass.data.get(DATA_EXPOSED_ENTITIES)
     if exposed_entities is not None:
-        entity_ids = set(exposed_entities.entities)
-        entity_ids.update(entities_reg.entities)
+        # The exposed-entities store only contains legacy entries. Registry
+        # options are the source of truth for entities with a unique_id, so
+        # inspect every known entity and let HA resolve both storage paths.
+        entity_ids = set(entities_reg.entities)
+        entity_ids.update(hass.states.async_entity_ids())
         for entity_id in sorted(entity_ids):
             assistants = {
                 assistant
@@ -127,9 +168,18 @@ def _snapshot(hass):
                 if async_should_expose(hass, assistant, entity_id)
             }
             if assistants:
-                exposed.append(
-                    {"entity_id": entity_id, "assistants": sorted(assistants)}
-                )
+                state = hass.states.get(entity_id)
+                registry_entry = entities_reg.async_get(entity_id)
+                exposed.append({
+                    "entity_id": entity_id,
+                    "name": (registry_entry.name if registry_entry else None)
+                    or (state.attributes.get("friendly_name") if state else None)
+                    or entity_id,
+                    "aliases": [alias for alias in (registry_entry.aliases or [])
+                                if isinstance(alias, str)]
+                    if registry_entry else [],
+                    "assistants": sorted(assistants),
+                })
     categories = {}
     category_registry = cr.async_get(hass)
     for scope in ("automation", "script"):
@@ -156,6 +206,7 @@ def _snapshot(hass):
             {
                 "id": label.label_id,
                 "name": label.name,
+                "description": getattr(label, "description", None),
                 "icon": getattr(label, "icon", None),
                 "color": getattr(label, "color", None),
             }
@@ -195,11 +246,36 @@ def async_register_websocket_commands(hass: HomeAssistant):
             )
         store, data = await _store(hass)
         incoming = msg["config"]
-        data["config"] = {
-            **DEFAULT_CONFIG,
-            **incoming,
-            "modules": {**DEFAULT_CONFIG["modules"], **incoming.get("modules", {})},
-        }
+        try:
+            data["config"] = _merge_config(incoming)
+        except ValueError as error:
+            return connection.send_error(msg["id"], "invalid_config", str(error))
+        await store.async_save(data)
+        connection.send_result(msg["id"], data["config"])
+
+    @websocket_api.websocket_command({"type": "ha_organizer/reviews/reset"})
+    @websocket_api.async_response
+    async def reviews_reset(hass, connection, msg):
+        if not _admin(connection):
+            return connection.send_error(
+                msg["id"], "not_allowed", "Administrator required"
+            )
+        store, data = await _store(hass)
+        data["reviews"] = {}
+        data["last_scan"] = None
+        await store.async_save(data)
+        connection.send_result(msg["id"], {"ok": True})
+
+    @websocket_api.websocket_command({"type": "ha_organizer/config/reset"})
+    @websocket_api.async_response
+    async def config_reset(hass, connection, msg):
+        if not _admin(connection):
+            return connection.send_error(
+                msg["id"], "not_allowed", "Administrator required"
+            )
+        store, data = await _store(hass)
+        data["config"] = deepcopy(DEFAULT_CONFIG)
+        data["last_scan"] = None
         await store.async_save(data)
         connection.send_result(msg["id"], data["config"])
 
@@ -264,5 +340,13 @@ def async_register_websocket_commands(hass: HomeAssistant):
 
     # The decorator validates command messages; registration is explicit in the
     # WebSocket API and is required for the command to be discoverable.
-    for command in (config_get, config_update, do_scan, review_set, get_overview):
+    for command in (
+        config_get,
+        config_update,
+        reviews_reset,
+        config_reset,
+        do_scan,
+        review_set,
+        get_overview,
+    ):
         websocket_api.async_register_command(hass, command)

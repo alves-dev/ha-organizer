@@ -1,10 +1,17 @@
 {
   "domain": "ha_organizer",
   "name": "HA Organizer",
-  "version": "2026.8.0",
-  "documentation": "https://github.com/home-assistant",
-  "requirements": [],
-  "codeowners": [],
+  "codeowners": [
+    "@alves-dev"
+  ],
   "config_flow": true,
-  "iot_class": "local_push"
+  "dependencies": [
+    "frontend",
+    "http"
+  ],
+  "documentation": "https://github.com/alves-dev/ha-organizer",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/alves-dev/ha-organizer/issues",
+  "requirements": [],
+  "version": "2026.8.0"
 }

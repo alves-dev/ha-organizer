@@ -1,0 +1,24 @@
+name: HACS Validation
+
+on:
+  push:
+    branches:
+      - develop
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-hacs:
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Checkout integration
+        uses: actions/checkout@v6
+
+      - name: HACS validation
+        uses: "hacs/action@main"
+        with:
+          category: integration

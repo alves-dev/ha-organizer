@@ -1,8 +1,8 @@
 TODO.md
 
-examples/*
-!examples/icons/
-!examples/icons/**
+# Local Home Assistant development files
+.storage/
+*.log
 
 # Local development environments and generated files
 .venv/

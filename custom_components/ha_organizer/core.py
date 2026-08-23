@@ -95,7 +95,7 @@ def _groups(items: list[dict], key_fn):
     return groups
 
 
-def categories(snapshot: dict, settings=None) -> list[dict]:
+def categories(snapshot: dict, settings=None) -> list[dict]:  # noqa: PLR0912
     settings = settings or {}
     settings = {
         "scopes": ["automation", "script"],
@@ -108,7 +108,10 @@ def categories(snapshot: dict, settings=None) -> list[dict]:
         **settings,
     }
     normalization = settings.get("normalization", {})
-    normalizer = lambda value: normalize(value, **normalization)
+
+    def normalizer(value):
+        return normalize(value, **normalization)
+
     configured_scopes = settings.get("scopes", ["automation", "script"])
     scopes = configured_scopes or ["automation", "script"]
     compare = settings.get("compare", len(configured_scopes) > 1)
@@ -129,7 +132,9 @@ def categories(snapshot: dict, settings=None) -> list[dict]:
                 },
             )
             row["names"].add(raw)
-            row["icons_by_scope"][scope] = value.get("icon") if isinstance(value, dict) else None
+            row["icons_by_scope"][scope] = (
+                value.get("icon") if isinstance(value, dict) else None
+            )
             if isinstance(value, dict) and value.get("icon"):
                 row["icons"].add(value["icon"])
             row["scopes"][scope] = True
@@ -146,7 +151,11 @@ def categories(snapshot: dict, settings=None) -> list[dict]:
                     sorted(row["names"]),
                 )
             )
-        missing = [scope for scope in scopes if not row["scopes"].get(scope)] if compare else []
+        missing = (
+            [scope for scope in scopes if not row["scopes"].get(scope)]
+            if compare
+            else []
+        )
         if missing:
             findings.append(
                 Finding(
@@ -156,7 +165,11 @@ def categories(snapshot: dict, settings=None) -> list[dict]:
                     missing,
                 )
             )
-        if compare and len(row["icons_by_scope"]) > 1 and len(set(row["icons_by_scope"].values())) > 1:
+        if (
+            compare
+            and len(row["icons_by_scope"]) > 1
+            and len(set(row["icons_by_scope"].values())) > 1
+        ):
             findings.append(
                 Finding(
                     "category_icon_variants",
@@ -184,14 +197,52 @@ def categories(snapshot: dict, settings=None) -> list[dict]:
                     sorted(row["names"]),
                 )
             )
-        if settings["case_policy"] == "lowercase" and category_name != category_name.lower():
-            findings.append(Finding("category_case_policy", "warning", "Nome deve usar apenas minúsculas", sorted(row["names"])))
-        if settings["case_policy"] == "uppercase" and category_name != category_name.upper():
-            findings.append(Finding("category_case_policy", "warning", "Nome deve usar apenas maiúsculas", sorted(row["names"])))
-        if not settings["allow_spaces"] and any(char.isspace() for char in category_name):
-            findings.append(Finding("category_spaces_policy", "warning", "Espaços não são permitidos no nome", sorted(row["names"])))
-        if not settings["allow_punctuation"] and any(not char.isalnum() and not char.isspace() for char in category_name):
-            findings.append(Finding("category_punctuation_policy", "warning", "Pontuação não é permitida no nome", sorted(row["names"])))
+        if (
+            settings["case_policy"] == "lowercase"
+            and category_name != category_name.lower()
+        ):
+            findings.append(
+                Finding(
+                    "category_case_policy",
+                    "warning",
+                    "Nome deve usar apenas minúsculas",
+                    sorted(row["names"]),
+                )
+            )
+        if (
+            settings["case_policy"] == "uppercase"
+            and category_name != category_name.upper()
+        ):
+            findings.append(
+                Finding(
+                    "category_case_policy",
+                    "warning",
+                    "Nome deve usar apenas maiúsculas",
+                    sorted(row["names"]),
+                )
+            )
+        if not settings["allow_spaces"] and any(
+            char.isspace() for char in category_name
+        ):
+            findings.append(
+                Finding(
+                    "category_spaces_policy",
+                    "warning",
+                    "Espaços não são permitidos no nome",
+                    sorted(row["names"]),
+                )
+            )
+        if not settings["allow_punctuation"] and any(
+            not char.isalnum() and not char.isspace() for char in category_name
+        ):
+            findings.append(
+                Finding(
+                    "category_punctuation_policy",
+                    "warning",
+                    "Pontuação não é permitida no nome",
+                    sorted(row["names"]),
+                )
+            )
         if settings["language"] != "any" and any(
             char.isalpha() and "LATIN" not in unicodedata.name(char, "")
             for char in category_name
@@ -200,7 +251,8 @@ def categories(snapshot: dict, settings=None) -> list[dict]:
                 Finding(
                     "category_language_policy",
                     "warning",
-                    f"Nome não parece usar o alfabeto esperado para {settings['language']}",
+                    "Nome não parece usar o alfabeto esperado para "
+                    f"{settings['language']}",
                     sorted(row["names"]),
                 )
             )
@@ -226,7 +278,10 @@ def categories(snapshot: dict, settings=None) -> list[dict]:
 
 def areas(snapshot: dict, settings=None) -> list[dict]:
     settings = settings or {}
-    normalizer = lambda value: normalize(value, **settings.get("normalization", {}))
+
+    def normalizer(value):
+        return normalize(value, **settings.get("normalization", {}))
+
     values = snapshot.get("areas", [])
     result = []
     by_name = _groups(values, lambda x: normalizer(x.get("name")))
@@ -307,7 +362,11 @@ def zones(snapshot: dict, settings=None) -> list[dict]:
             for x in by_center[(z.get("latitude"), z.get("longitude"), z.get("radius"))]
             if x is not z
         ]
-        if settings["detect_duplicate_geometry"] and dup and str(zid).casefold() != "home":
+        if (
+            settings["detect_duplicate_geometry"]
+            and dup
+            and str(zid).casefold() != "home"
+        ):
             findings.append(
                 Finding(
                     "duplicate_zone_geometry",
@@ -321,11 +380,29 @@ def zones(snapshot: dict, settings=None) -> list[dict]:
                 Finding("zone_name_missing", "warning", "Zona sem nome", [str(zid)])
             )
         if settings["require_icon"] and not z.get("icon"):
-            findings.append(Finding("zone_icon_required", "info", "Zona sem ícone", [str(zid)]))
+            findings.append(
+                Finding(
+                    "zone_icon_required", "info", "Zona sem ícone", [str(zid)]
+                )
+            )
         if settings["min_radius"] and (z.get("radius") or 0) < settings["min_radius"]:
-            findings.append(Finding("zone_min_radius", "warning", f"Raio menor que {settings['min_radius']} m", [str(zid)]))
+            findings.append(
+                Finding(
+                    "zone_min_radius",
+                    "warning",
+                    f"Raio menor que {settings['min_radius']} m",
+                    [str(zid)],
+                )
+            )
         if settings["max_radius"] and (z.get("radius") or 0) > settings["max_radius"]:
-            findings.append(Finding("zone_max_radius", "warning", f"Raio maior que {settings['max_radius']} m", [str(zid)]))
+            findings.append(
+                Finding(
+                    "zone_max_radius",
+                    "warning",
+                    f"Raio maior que {settings['max_radius']} m",
+                    [str(zid)],
+                )
+            )
         result.append(
             _item(
                 "zones",
@@ -354,14 +431,37 @@ def zones(snapshot: dict, settings=None) -> list[dict]:
 
 
 def labels(snapshot: dict, settings=None) -> list[dict]:
-    settings = settings or {}
-    normalizer = lambda value: normalize(value, **settings.get("normalization", {}))
+    settings = {"min_name_length": 1, "min_description_length": 0, **(settings or {})}
+
+    def normalizer(value):
+        return normalize(value, **settings.get("normalization", {}))
+
     values = snapshot.get("labels", [])
     by_name = _groups(values, lambda item: normalizer(item.get("name")))
     result = []
     for label in values:
         label_id = label.get("id") or label.get("name")
         findings = []
+        name = label.get("name") or label_id
+        description = label.get("description") or ""
+        if len(name.strip()) < settings["min_name_length"]:
+            findings.append(
+                Finding(
+                    "label_name_length",
+                    "warning",
+                    "Label name is shorter than the configured minimum",
+                    [str(label_id)],
+                )
+            )
+        if len(description.strip()) < settings["min_description_length"]:
+            findings.append(
+                Finding(
+                    "label_description_length",
+                    "warning",
+                    "Label description is shorter than the configured minimum",
+                    [str(label_id)],
+                )
+            )
         matching = by_name.get(normalizer(label.get("name")), [])
         if len(matching) > 1:
             findings.append(
@@ -376,11 +476,12 @@ def labels(snapshot: dict, settings=None) -> list[dict]:
             _item(
                 "labels",
                 label_id,
-                label.get("name") or label_id,
+                name,
                 label,
                 findings,
                 icon=label.get("icon"),
                 color=label.get("color"),
+                description=description,
             )
         )
     return result
@@ -452,22 +553,56 @@ def entity_ids(snapshot: dict, settings=None) -> list[dict]:
 
 def exposed(snapshot: dict, settings=None) -> list[dict]:
     settings = settings or {}
-    normalizer = lambda value: normalize(value, **settings.get("normalization", {}))
+
+    def normalizer(value):
+        return normalize(value, **settings.get("normalization", {}))
+
     values = snapshot.get("exposed", [])
-    entries = []
+    entities = {}
+    entries_by_key = {}
+    keys_by_entity = {}
     for value in values:
         eid = value.get("entity_id", "")
         names = [
             value.get("name") or value.get("friendly_name") or "",
             *(value.get("aliases") or []),
         ]
+        names = list(dict.fromkeys(name for name in names if name))
+        if not eid or not names:
+            continue
+        entities[eid] = names
         for name in names:
-            if name:
-                entries.append((normalizer(name), eid, name))
-    grouped = _groups(entries, lambda x: x[0])
+            key = normalizer(name)
+            entries_by_key.setdefault(key, []).append((eid, name))
+            keys_by_entity.setdefault(eid, set()).add(key)
+
     result = []
-    for key, group in grouped.items():
-        refs = sorted({x[1] for x in group})
+    unvisited = set(entries_by_key)
+    while unvisited:
+        start = unvisited.pop()
+        component = {start}
+        pending = [start]
+        while pending:
+            key = pending.pop()
+            entity_ids = {eid for eid, _ in entries_by_key[key]}
+            linked = {
+                linked_key
+                for eid in entity_ids
+                for linked_key in keys_by_entity[eid]
+            }
+            new_keys = linked & unvisited
+            component.update(new_keys)
+            unvisited -= new_keys
+            pending.extend(new_keys)
+
+        entries = [
+            entry
+            for key in component
+            for entry in entries_by_key[key]
+        ]
+        refs = sorted({eid for eid, _ in entries})
+        title = next(entities[eid][0] for eid in refs)
+        key = normalizer(title)
         findings = []
         if len(refs) > 1:
             findings.append(
@@ -478,16 +613,21 @@ def exposed(snapshot: dict, settings=None) -> list[dict]:
                     refs,
                 )
             )
-        relevant = {"key": key, "entries": sorted(group)}
+        relevant = {
+            "key": key,
+            "entries": [
+                {"entity_id": eid, "name": name} for eid, name in entries
+            ],
+        }
         result.append(
             _item(
                 "exposed",
                 key,
-                group[0][2],
+                title,
                 relevant,
                 findings,
                 entities=refs,
-                entries=[{"entity_id": e, "name": n} for _, e, n in group],
+                entries=relevant["entries"],
             )
         )
     return result
@@ -529,6 +669,8 @@ def scan(snapshot: dict, config: dict, reviews=None) -> dict:
                 settings = {**config.get("categories", {}), **settings}
             if module == "zones":
                 settings = {**config.get("zones", {}), **settings}
+            if module == "labels":
+                settings = {**config.get("labels", {}), **settings}
             if module == "entity_ids":
                 settings = {
                     "pattern": config.get("entity_id_pattern", "{domain}.{entity}"),
@@ -563,10 +705,23 @@ def overview(result: dict) -> dict:
             )
         }
 
+    module_progress = {}
+    for module, items in result.get("modules", {}).items():
+        reviewed = sum(
+            item.get("review_status") in ("reviewed", "ignored")
+            for item in items
+        )
+        module_progress[module] = {
+            "total": len(items),
+            "reviewed": reviewed,
+            "progress": reviewed / len(items) if items else 1,
+        }
+
     return {
         "total": total,
         "review_progress": len(current) / total if total else 1,
         "compliance": counts("compliance_status"),
         "review": counts("review_status"),
         "stale": [i for i in all_items if i.get("review_status") == "stale"],
+        "module_progress": module_progress,
     }

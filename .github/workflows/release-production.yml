@@ -1,0 +1,82 @@
+name: Production Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - custom_components/ha_organizer/manifest.json
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create release from main
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Require main branch
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "This workflow must be run from the main branch." >&2
+          exit 1
+
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Prepare release metadata
+        id: release
+        run: |
+          version="$(jq -r '.version // empty' custom_components/ha_organizer/manifest.json)"
+
+          if [ -z "$version" ]; then
+            echo "The integration manifest does not define a version." >&2
+            exit 1
+          fi
+
+          if [[ "$version" == *-dev ]]; then
+            echo "Development versions cannot be published as releases: $version" >&2
+            exit 1
+          fi
+
+          tag="v${version}"
+
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "Local tag already exists: $tag" >&2
+            exit 1
+          fi
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "Remote tag already exists: $tag" >&2
+            exit 1
+          fi
+
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "title=$tag"
+            echo "body=# $tag"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag -a "${{ steps.release.outputs.tag }}" -m "${{ steps.release.outputs.title }}"
+          git push origin "${{ steps.release.outputs.tag }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release.outputs.tag }}
+          name: ${{ steps.release.outputs.title }}
+          body: ${{ steps.release.outputs.body }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

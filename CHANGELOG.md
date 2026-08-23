@@ -6,7 +6,7 @@ All notable changes to HA Organizer are documented in this file.
 
 ### Added
 
-- Initial MVP release of the HA Organizer custom integration.
+- Initial beta release of the HA Organizer custom integration.
 - Read-only Organizer panel with Overview, Categories, Areas, Zones, Labels,
   Entity IDs, and Exposed & Aliases modules.
 - Configurable audit policies for categories, zones, and Entity IDs.

@@ -13,13 +13,13 @@ native Home Assistant screens where changes can be made manually.
 ![HACS](https://img.shields.io/badge/HACS-Custom%20Integration-18BC9C?style=flat-square)
 ![Version](https://img.shields.io/badge/Version-2026.8.0-41BDF5?style=flat-square)
 
-> This project is in an early MVP stage. The interface and audit rules may
-> evolve as they are exercised against real Home Assistant installations.
+> HA Organizer is currently in beta. Audit rules and the interface may evolve
+> as the integration is used with more Home Assistant installations.
 
 ## What it does
 
-The integration adds an **HA Organizer** panel to Home Assistant. The MVP
-includes these modules:
+The integration adds an **HA Organizer** panel to Home Assistant with these
+modules:
 
 - **Overview** — consolidated compliance and review progress.
 - **Categories** — compares automation and script categories, including names
@@ -92,27 +92,16 @@ Where possible, the panel links directly to the native Home Assistant pages:
 These links are intentionally simple navigation links. HA Organizer does not
 edit native resources through its own WebSocket API.
 
+## Compatibility
+
+HA Organizer currently targets Home Assistant `2026.8.x`. See the
+[compatibility matrix](docs/compatibility.md) for tested combinations and
+release guidance.
+
 ## Development
 
-The project targets Home Assistant `2026.8.0` and uses the Home Assistant-style
-version format `YYYY.M.patch`.
-
-Useful commands for contributors:
-
-```bash
-uv sync
-uv run pytest
-uv run ruff check custom_components tests
-uv run ruff format --check custom_components tests
-```
-
-During exploratory MVP work, run validation explicitly when you are ready to
-check a change. The local development helper copies the integration to a Home
-Assistant checkout:
-
-```bash
-.dev/copy-to-core.sh
-```
+Contributor commands, local Home Assistant testing, coverage requirements, and
+SonarQube validation are documented in [Development and quality checks](docs/development.md).
 
 ## Privacy and safety
 
@@ -124,10 +113,12 @@ emphasis in the panel.
 
 ## Documentation
 
-- [MVP specification](HA_ORGANIZER_MVP_SPEC.md)
+- [Compatibility matrix](docs/compatibility.md)
+- [Development and quality checks](docs/development.md)
+- [Product and architecture specification](docs/product-specification.md)
 - [Changelog](CHANGELOG.md)
-- [Icon concepts](examples/icons/README.md)
+- [Icon concepts](docs/icons/README.md)
 
 ## License
 
-HA Organizer is distributed under the [MIT License](LICENSE).
+HA Organizer is distributed under the [MIT License](LICENSE.md).

@@ -1,8 +1,8 @@
 # Instruções de desenvolvimento do HA Organizer
 
-## Fluxo de trabalho durante o MVP
+## Fluxo de trabalho durante a versão beta
 
-- Durante a fase de testes exploratórios do MVP, não executar automaticamente a suíte de testes, testes unitários, lint ou validações equivalentes, salvo solicitação explícita do usuário.
+- Durante a fase de testes exploratórios da versão beta, não executar automaticamente a suíte de testes, testes unitários, lint ou validações equivalentes, salvo solicitação explícita do usuário.
 - Consultar sempre o arquivo `TODO.md` na raiz antes de iniciar uma nova tarefa. Os itens desse arquivo fazem parte do escopo prioritário de ajustes.
 - Para investigar falhas encontradas durante os testes locais do usuário, consultar o log do Home Assistant em:
   `/home/alves-dev/projects/others/core/config/home-assistant.log`
@@ -11,9 +11,9 @@
 - Não alterar o projeto de referência em `/home/alves-dev/projects/python/ia-usage`.
 - Alterações devem permanecer neste repositório, exceto quando o usuário solicitar explicitamente uma operação de cópia ou implantação.
 
-## Decisões registradas do MVP
+## Decisões registradas da versão beta
 
-- O projeto é uma custom integration para Home Assistant `2026.8.0`; a dependência e o formato de versão devem permanecer alinhados com essa versão durante o MVP.
+- O projeto é uma custom integration para Home Assistant `2026.8.0`; a dependência e o formato de versão devem permanecer alinhados com essa versão durante a versão beta.
 - A integração é somente leitura em relação aos dados do Home Assistant: ela audita e registra revisões, mas não renomeia entidades, áreas, zonas, labels ou categorias.
 - A instalação da integração usa um fluxo mínimo. As políticas são configuradas depois, na página `Settings`.
 - A interface deve ser apresentada em inglês inicialmente. A tradução atual acontece na camada da UI; nomes e dados do usuário não devem ser traduzidos.
@@ -30,6 +30,15 @@
 - O conceito de ícone ativo durante os testes é o número 2, salvo em `custom_components/ha_organizer/icon.png`; os demais conceitos ficam em `examples/icons/` como referência.
 - O painel serve o ícone por `/ha_organizer/icon.png` e a cópia para o ambiente local deve ser feita com `.dev/copy-to-core.sh`.
 - Links nativos de edição devem permanecer como links simples para as rotas do Home Assistant e não devem tentar editar dados por WebSocket do Organizer.
+
+## Validação do SonarQube
+
+- O projeto usa `sonar-project.properties`, com `sonar.projectKey=ha-organizer` e o relatório `coverage.xml`.
+- Antes de conferir o Sonar, executar Ruff e pytest com cobertura:
+  `uv run ruff check custom_components/ha_organizer tests` e `uv run pytest --cov=custom_components/ha_organizer --cov-report=term --cov-report=xml`.
+- O workflow **SonarQube Analysis** é executado em pushes para `develop` e pull requests para `main`. A validação remota exige que o workflow e o quality gate passem.
+- Para uma consulta somente leitura local, usar `/home/alves-dev/.codex/skills/sonar-analyzer/scripts/query_sonar.sh` e salvar a saída apenas em `/tmp`; nunca imprimir ou versionar o token.
+- Se o helper não resolver `sonar.alves-dev.com`, consultar o resultado do workflow no GitHub Actions e registrar a limitação, sem alterar as regras do Sonar para ocultar o problema.
 
 ## Encerramento e publicação
 

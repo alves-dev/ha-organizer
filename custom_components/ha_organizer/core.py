@@ -300,6 +300,17 @@ def areas(snapshot: dict, settings=None) -> list[dict]:
             )
         devices = area.get("devices", [])
         entities = area.get("entities", [])
+        if settings.get("require_floor") and not area.get("floor"):
+            findings.append(Finding("area_floor_required", "warning", "Area has no floor", [str(aid)]))
+        if settings.get("require_aliases") and not area.get("aliases"):
+            findings.append(Finding("area_aliases_required", "warning", "Area has no aliases", [str(aid)]))
+        if settings.get("require_picture") and not area.get("picture"):
+            findings.append(Finding("area_picture_required", "warning", "Area has no picture", [str(aid)]))
+        case_policy = settings.get("case_policy", "any")
+        if case_policy == "capitalized" and area.get("name") != str(area.get("name", "")).capitalize():
+            findings.append(Finding("area_case_policy", "warning", "Area name must start with an uppercase letter", [str(aid)]))
+        if case_policy == "lowercase" and area.get("name") != str(area.get("name", "")).lower():
+            findings.append(Finding("area_case_policy", "warning", "Area name must use lowercase only", [str(aid)]))
         result.append(
             _item(
                 "areas",
@@ -313,7 +324,10 @@ def areas(snapshot: dict, settings=None) -> list[dict]:
                 },
                 findings,
                 **{k: area.get(k, []) for k in ("devices", "entities")},
+                device_details=area.get("device_details", []),
                 floor=area.get("floor"),
+                picture=area.get("picture"),
+                aliases=area.get("aliases", []),
             )
         )
     for device in snapshot.get("devices_without_area", []):
@@ -342,6 +356,7 @@ def areas(snapshot: dict, settings=None) -> list[dict]:
 def zones(snapshot: dict, settings=None) -> list[dict]:  # NOSONAR
     settings = {
         "detect_duplicate_geometry": True,
+        "detect_overlapping_geometry": True,
         "min_radius": 0,
         "max_radius": 0,
         "require_icon": False,
@@ -375,6 +390,18 @@ def zones(snapshot: dict, settings=None) -> list[dict]:  # NOSONAR
                     [str(x.get("id", x.get("name"))) for x in dup],
                 )
             )
+        if settings["detect_overlapping_geometry"] and z.get("latitude") is not None and z.get("longitude") is not None:
+            overlaps = []
+            for other in values:
+                if other is z or other.get("latitude") is None or other.get("longitude") is None:
+                    continue
+                lat_delta = (float(z["latitude"]) - float(other["latitude"])) * 111_320
+                lon_delta = (float(z["longitude"]) - float(other["longitude"])) * 111_320
+                distance = (lat_delta * lat_delta + lon_delta * lon_delta) ** 0.5
+                if distance <= float(z.get("radius") or 0) + float(other.get("radius") or 0):
+                    overlaps.append(str(other.get("id", other.get("name"))))
+            if overlaps and str(zid).casefold() != "home":
+                findings.append(Finding("overlapping_zone_geometry", "warning", "Zone overlaps another zone", sorted(overlaps)))
         if not z.get("name"):
             findings.append(
                 Finding("zone_name_missing", "warning", "Zona sem nome", [str(zid)])
@@ -431,7 +458,7 @@ def zones(snapshot: dict, settings=None) -> list[dict]:  # NOSONAR
 
 
 def labels(snapshot: dict, settings=None) -> list[dict]:
-    settings = {"min_name_length": 1, "min_description_length": 0, **(settings or {})}
+    settings = {"min_name_length": 1, "min_description_length": 0, "require_icon": False, "require_color": False, **(settings or {})}
 
     def normalizer(value):
         return normalize(value, **settings.get("normalization", {}))
@@ -462,6 +489,10 @@ def labels(snapshot: dict, settings=None) -> list[dict]:
                     [str(label_id)],
                 )
             )
+        if settings["require_icon"] and not label.get("icon"):
+            findings.append(Finding("label_icon_required", "warning", "Label has no icon", [str(label_id)]))
+        if settings["require_color"] and not label.get("color"):
+            findings.append(Finding("label_color_required", "warning", "Label has no color", [str(label_id)]))
         matching = by_name.get(normalizer(label.get("name")), [])
         if len(matching) > 1:
             findings.append(
@@ -616,7 +647,15 @@ def exposed(snapshot: dict, settings=None) -> list[dict]:
         relevant = {
             "key": key,
             "entries": [
-                {"entity_id": eid, "name": name} for eid, name in entries
+                {
+                    "entity_id": eid,
+                    "name": name,
+                    "assistants": next(
+                        (value.get("assistants", []) for value in values if value.get("entity_id") == eid),
+                        [],
+                    ),
+                }
+                for eid, name in entries
             ],
         }
         result.append(

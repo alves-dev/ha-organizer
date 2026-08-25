@@ -279,6 +279,47 @@ def categories(snapshot: dict, settings=None) -> list[dict]:  # noqa: PLR0912  #
     return result
 
 
+def _area_policy_findings(area: dict, area_id: str, settings: dict) -> list[Finding]:
+    findings = []
+    if settings.get("require_floor") and not area.get("floor"):
+        findings.append(
+            Finding("area_floor_required", "warning", "Area has no floor", [area_id])
+        )
+    if settings.get("require_aliases") and not area.get("aliases"):
+        findings.append(
+            Finding(
+                "area_aliases_required", "warning", "Area has no aliases", [area_id]
+            )
+        )
+    if settings.get("require_picture") and not area.get("picture"):
+        findings.append(
+            Finding(
+                "area_picture_required", "warning", "Area has no picture", [area_id]
+            )
+        )
+    name = str(area.get("name", ""))
+    case_policy = settings.get("case_policy", "any")
+    if case_policy == "capitalized" and area.get("name") != name.capitalize():
+        findings.append(
+            Finding(
+                "area_case_policy",
+                "warning",
+                "Area name must start with an uppercase letter",
+                [area_id],
+            )
+        )
+    if case_policy == "lowercase" and area.get("name") != name.lower():
+        findings.append(
+            Finding(
+                "area_case_policy",
+                "warning",
+                "Area name must use lowercase only",
+                [area_id],
+            )
+        )
+    return findings
+
+
 def areas(snapshot: dict, settings=None) -> list[dict]:
     settings = settings or {}
 
@@ -303,55 +344,7 @@ def areas(snapshot: dict, settings=None) -> list[dict]:
             )
         devices = area.get("devices", [])
         entities = area.get("entities", [])
-        if settings.get("require_floor") and not area.get("floor"):
-            findings.append(
-                Finding(
-                    "area_floor_required", "warning", "Area has no floor", [str(aid)]
-                )
-            )
-        if settings.get("require_aliases") and not area.get("aliases"):
-            findings.append(
-                Finding(
-                    "area_aliases_required",
-                    "warning",
-                    "Area has no aliases",
-                    [str(aid)],
-                )
-            )
-        if settings.get("require_picture") and not area.get("picture"):
-            findings.append(
-                Finding(
-                    "area_picture_required",
-                    "warning",
-                    "Area has no picture",
-                    [str(aid)],
-                )
-            )
-        case_policy = settings.get("case_policy", "any")
-        if (
-            case_policy == "capitalized"
-            and area.get("name") != str(area.get("name", "")).capitalize()
-        ):
-            findings.append(
-                Finding(
-                    "area_case_policy",
-                    "warning",
-                    "Area name must start with an uppercase letter",
-                    [str(aid)],
-                )
-            )
-        if (
-            case_policy == "lowercase"
-            and area.get("name") != str(area.get("name", "")).lower()
-        ):
-            findings.append(
-                Finding(
-                    "area_case_policy",
-                    "warning",
-                    "Area name must use lowercase only",
-                    [str(aid)],
-                )
-            )
+        findings.extend(_area_policy_findings(area, str(aid), settings))
         result.append(
             _item(
                 "areas",
@@ -521,6 +514,39 @@ def zones(snapshot: dict, settings=None) -> list[dict]:  # NOSONAR
     return result
 
 
+def _label_policy_findings(
+    label: dict, label_id: str, name: str, description: str, settings: dict
+) -> list[Finding]:
+    findings = []
+    if len(name.strip()) < settings["min_name_length"]:
+        findings.append(
+            Finding(
+                "label_name_length",
+                "warning",
+                "Label name is shorter than the configured minimum",
+                [label_id],
+            )
+        )
+    if len(description.strip()) < settings["min_description_length"]:
+        findings.append(
+            Finding(
+                "label_description_length",
+                "warning",
+                "Label description is shorter than the configured minimum",
+                [label_id],
+            )
+        )
+    if settings["require_icon"] and not label.get("icon"):
+        findings.append(
+            Finding("label_icon_required", "warning", "Label has no icon", [label_id])
+        )
+    if settings["require_color"] and not label.get("color"):
+        findings.append(
+            Finding("label_color_required", "warning", "Label has no color", [label_id])
+        )
+    return findings
+
+
 def labels(snapshot: dict, settings=None) -> list[dict]:
     settings = {
         "min_name_length": 1,
@@ -541,42 +567,9 @@ def labels(snapshot: dict, settings=None) -> list[dict]:
         findings = []
         name = label.get("name") or label_id
         description = label.get("description") or ""
-        if len(name.strip()) < settings["min_name_length"]:
-            findings.append(
-                Finding(
-                    "label_name_length",
-                    "warning",
-                    "Label name is shorter than the configured minimum",
-                    [str(label_id)],
-                )
-            )
-        if len(description.strip()) < settings["min_description_length"]:
-            findings.append(
-                Finding(
-                    "label_description_length",
-                    "warning",
-                    "Label description is shorter than the configured minimum",
-                    [str(label_id)],
-                )
-            )
-        if settings["require_icon"] and not label.get("icon"):
-            findings.append(
-                Finding(
-                    "label_icon_required",
-                    "warning",
-                    "Label has no icon",
-                    [str(label_id)],
-                )
-            )
-        if settings["require_color"] and not label.get("color"):
-            findings.append(
-                Finding(
-                    "label_color_required",
-                    "warning",
-                    "Label has no color",
-                    [str(label_id)],
-                )
-            )
+        findings.extend(
+            _label_policy_findings(label, str(label_id), name, description, settings)
+        )
         matching = by_name.get(normalizer(label.get("name")), [])
         if len(matching) > 1:
             findings.append(

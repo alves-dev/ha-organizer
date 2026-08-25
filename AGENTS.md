@@ -30,6 +30,8 @@
 - O conceito de ícone ativo durante os testes é o número 2, salvo em `custom_components/ha_organizer/icon.png`; os demais conceitos ficam em `examples/icons/` como referência.
 - O painel serve o ícone por `/ha_organizer/icon.png` e a cópia para o ambiente local deve ser feita com `.dev/copy-to-core.sh`.
 - Links nativos de edição devem permanecer como links simples para as rotas do Home Assistant e não devem tentar editar dados por WebSocket do Organizer.
+- Todos os links renderizados pelo Organizer devem abrir em outra aba do navegador, usando `target="_blank"` e `rel="noopener noreferrer"`.
+- Sempre que um recurso possuir ícone, a interface deve mostrar tanto o símbolo visual quanto o nome técnico do ícone, quando disponível.
 
 ## Validação do SonarQube
 

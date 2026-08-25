@@ -16,6 +16,7 @@ DEFAULT_CONFIG = {
         "allow_punctuation": True,
     },
     "zones": {
+        "detect_duplicate_geometry": True,
         "detect_overlapping_geometry": True,
         "min_radius": 0,
         "max_radius": 0,

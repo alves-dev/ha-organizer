@@ -65,7 +65,11 @@ def _validate_categories(categories):
 def _validate_boolean_settings(config):
     fields_by_section = {
         "categories": ("require_icon", "allow_spaces", "allow_punctuation"),
-        "zones": ("detect_duplicate_geometry", "detect_overlapping_geometry", "require_icon"),
+        "zones": (
+            "detect_duplicate_geometry",
+            "detect_overlapping_geometry",
+            "require_icon",
+        ),
         "labels": ("require_icon", "require_color"),
     }
     for section, fields in fields_by_section.items():
@@ -215,7 +219,7 @@ async def _store(hass):
     }
 
 
-def _snapshot(hass):  # NOSONAR
+def _snapshot(hass):  # noqa: PLR0912  # NOSONAR
     areas_reg = ar.async_get(hass)
     devices_reg = dr.async_get(hass)
     entities_reg = er.async_get(hass)
@@ -244,8 +248,7 @@ def _snapshot(hass):  # NOSONAR
                 "aliases": list(getattr(area, "aliases", ()) or ()),
                 "devices": devices,
                 "device_details": [
-                    {"id": d.id, "name": d.name_by_user or d.name}
-                    for d in area_devices
+                    {"id": d.id, "name": d.name_by_user or d.name} for d in area_devices
                 ],
                 "entities": entities,
             }
@@ -301,23 +304,31 @@ def _snapshot(hass):  # NOSONAR
             if assistants:
                 state = hass.states.get(entity_id)
                 registry_entry = entities_reg.async_get(entity_id)
-                exposed.append({
-                    "entity_id": entity_id,
-                    "name": (registry_entry.name if registry_entry else None)
-                    or (state.attributes.get("friendly_name") if state else None)
-                    or entity_id,
-                    "aliases": [alias for alias in (registry_entry.aliases or [])
-                                if isinstance(alias, str)]
-                    if registry_entry else [],
-                    "assistants": sorted(assistants),
-                })
+                exposed.append(
+                    {
+                        "entity_id": entity_id,
+                        "name": (registry_entry.name if registry_entry else None)
+                        or (state.attributes.get("friendly_name") if state else None)
+                        or entity_id,
+                        "aliases": [
+                            alias
+                            for alias in (registry_entry.aliases or [])
+                            if isinstance(alias, str)
+                        ]
+                        if registry_entry
+                        else [],
+                        "assistants": sorted(assistants),
+                    }
+                )
     categories = {}
     category_registry = cr.async_get(hass)
     category_entities = {scope: {} for scope in ("automation", "script", "scene")}
     for entry in entities_reg.entities.values():
         for scope, category_id in entry.categories.items():
             if scope in category_entities:
-                category_entities[scope].setdefault(category_id, []).append(entry.entity_id)
+                category_entities[scope].setdefault(category_id, []).append(
+                    entry.entity_id
+                )
     for scope in ("automation", "script", "scene"):
         scope_categories = []
         for category in category_registry.async_list_categories(scope=scope):
@@ -361,9 +372,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # 
     @websocket_api.async_response
     async def config_get(hass, connection, msg):
         if not _admin(connection):
-            return connection.send_error(
-                msg["id"], "not_allowed", ADMIN_REQUIRED
-            )
+            return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
         _, data = await _store(hass)
         connection.send_result(msg["id"], data.get("config", DEFAULT_CONFIG))
 
@@ -373,9 +382,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # 
     @websocket_api.async_response
     async def config_update(hass, connection, msg):
         if not _admin(connection):
-            return connection.send_error(
-                msg["id"], "not_allowed", ADMIN_REQUIRED
-            )
+            return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
         store, data = await _store(hass)
         incoming = msg["config"]
         try:
@@ -389,9 +396,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # 
     @websocket_api.async_response
     async def reviews_reset(hass, connection, msg):
         if not _admin(connection):
-            return connection.send_error(
-                msg["id"], "not_allowed", ADMIN_REQUIRED
-            )
+            return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
         store, data = await _store(hass)
         data["reviews"] = {}
         data["last_scan"] = None
@@ -402,9 +407,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # 
     @websocket_api.async_response
     async def config_reset(hass, connection, msg):
         if not _admin(connection):
-            return connection.send_error(
-                msg["id"], "not_allowed", ADMIN_REQUIRED
-            )
+            return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
         store, data = await _store(hass)
         data["config"] = deepcopy(DEFAULT_CONFIG)
         data["last_scan"] = None
@@ -415,9 +418,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # 
     @websocket_api.async_response
     async def do_scan(hass, connection, msg):
         if not _admin(connection):
-            return connection.send_error(
-                msg["id"], "not_allowed", ADMIN_REQUIRED
-            )
+            return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
         store, data = await _store(hass)
         result = scan(
             _snapshot(hass), data.get("config", DEFAULT_CONFIG), data.get("reviews", {})
@@ -440,9 +441,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # 
     @websocket_api.async_response
     async def review_set(hass, connection, msg):
         if not _admin(connection):
-            return connection.send_error(
-                msg["id"], "not_allowed", ADMIN_REQUIRED
-            )
+            return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
         store, data = await _store(hass)
         status = msg["status"]
         if status not in ("reviewed", "ignored", "pending"):
@@ -471,9 +470,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # 
     @websocket_api.async_response
     async def get_overview(hass, connection, msg):
         if not _admin(connection):
-            return connection.send_error(
-                msg["id"], "not_allowed", ADMIN_REQUIRED
-            )
+            return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
         _, data = await _store(hass)
         connection.send_result(
             msg["id"], overview(data.get("last_scan") or {"modules": {}})

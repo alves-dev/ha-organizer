@@ -99,7 +99,7 @@ def _groups(items: list[dict], key_fn):
 def categories(snapshot: dict, settings=None) -> list[dict]:  # noqa: PLR0912  # NOSONAR
     settings = settings or {}
     settings = {
-        "scopes": ["automation", "script"],
+        "scopes": ["automation", "script", "scene"],
         "require_icon": False,
         "min_length": 0,
         "language": "any",
@@ -113,8 +113,8 @@ def categories(snapshot: dict, settings=None) -> list[dict]:  # noqa: PLR0912  #
     def normalizer(value):
         return normalize(value, **normalization)
 
-    configured_scopes = settings.get("scopes", ["automation", "script"])
-    scopes = configured_scopes or ["automation", "script"]
+    configured_scopes = settings.get("scopes", ["automation", "script", "scene"])
+    scopes = configured_scopes or ["automation", "script", "scene"]
     compare = settings.get("compare", len(configured_scopes) > 1)
     sources = {scope: snapshot.get("categories", {}).get(scope, []) for scope in scopes}
     rows = {}
@@ -175,7 +175,7 @@ def categories(snapshot: dict, settings=None) -> list[dict]:  # noqa: PLR0912  #
                 Finding(
                     "category_icon_variants",
                     "warning",
-                    "Ícones diferentes entre automações e scripts",
+                    "Category icons differ across selected scopes",
                     sorted(row["names"]),
                 )
             )
@@ -267,11 +267,13 @@ def categories(snapshot: dict, settings=None) -> list[dict]:  # noqa: PLR0912  #
                     "scopes": row["scopes"],
                     "resources": row["resources"],
                     "icons": sorted(row["icons"]),
+                    "icons_by_scope": row["icons_by_scope"],
                 },
                 findings,
                 scopes=row["scopes"],
                 resources=row["resources"],
                 icon=next(iter(sorted(row["icons"])), None),
+                icons_by_scope=row["icons_by_scope"],
             )
         )
     return result

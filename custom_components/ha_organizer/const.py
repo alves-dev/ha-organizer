@@ -7,7 +7,7 @@ DEFAULT_CONFIG = {
     "schema_version": VERSION,
     "modules": DEFAULT_MODULES,
     "categories": {
-        "scopes": ["automation", "script"],
+        "scopes": ["automation", "script", "scene"],
         "require_icon": False,
         "min_length": 0,
         "language": "any",

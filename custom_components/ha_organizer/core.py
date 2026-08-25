@@ -326,8 +326,10 @@ def areas(snapshot: dict, settings=None) -> list[dict]:
                 **{k: area.get(k, []) for k in ("devices", "entities")},
                 device_details=area.get("device_details", []),
                 floor=area.get("floor"),
+                icon=area.get("icon"),
                 picture=area.get("picture"),
                 aliases=area.get("aliases", []),
+                area_kind="area",
             )
         )
     for device in snapshot.get("devices_without_area", []):
@@ -348,6 +350,8 @@ def areas(snapshot: dict, settings=None) -> list[dict]:
                 ],
                 attention=True,
                 devices=[device],
+                device_details=[device],
+                area_kind="unassigned_device",
             )
         )
     return result

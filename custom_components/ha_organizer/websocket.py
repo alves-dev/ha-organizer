@@ -239,6 +239,7 @@ def _snapshot(hass):  # NOSONAR
                 "id": area.id,
                 "name": area.name,
                 "floor": getattr(area, "floor", None),
+                "icon": getattr(area, "icon", None),
                 "picture": getattr(area, "picture", None),
                 "aliases": list(getattr(area, "aliases", ()) or ()),
                 "devices": devices,

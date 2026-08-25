@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from hashlib import sha256
 import json
+from math import cos, radians
 import re
 from typing import Any
 import unicodedata
@@ -359,7 +360,6 @@ def areas(snapshot: dict, settings=None) -> list[dict]:
 
 def zones(snapshot: dict, settings=None) -> list[dict]:  # NOSONAR
     settings = {
-        "detect_duplicate_geometry": True,
         "detect_overlapping_geometry": True,
         "min_radius": 0,
         "max_radius": 0,
@@ -368,39 +368,17 @@ def zones(snapshot: dict, settings=None) -> list[dict]:  # NOSONAR
     }
     values = snapshot.get("zones", [])
     result = []
-    by_center = {}
-    for z in values:
-        by_center.setdefault(
-            (z.get("latitude"), z.get("longitude"), z.get("radius")), []
-        ).append(z)
     for z in values:
         zid = z.get("id") or z.get("zone_id") or z.get("name")
         findings = []
-        dup = [
-            x
-            for x in by_center[(z.get("latitude"), z.get("longitude"), z.get("radius"))]
-            if x is not z
-        ]
-        if (
-            settings["detect_duplicate_geometry"]
-            and dup
-            and str(zid).casefold() != "home"
-        ):
-            findings.append(
-                Finding(
-                    "duplicate_zone_geometry",
-                    "error",
-                    "Zona com centro e raio idênticos",
-                    [str(x.get("id", x.get("name"))) for x in dup],
-                )
-            )
         if settings["detect_overlapping_geometry"] and z.get("latitude") is not None and z.get("longitude") is not None:
             overlaps = []
             for other in values:
                 if other is z or other.get("latitude") is None or other.get("longitude") is None:
                     continue
+                mean_latitude = radians((float(z["latitude"]) + float(other["latitude"])) / 2)
                 lat_delta = (float(z["latitude"]) - float(other["latitude"])) * 111_320
-                lon_delta = (float(z["longitude"]) - float(other["longitude"])) * 111_320
+                lon_delta = (float(z["longitude"]) - float(other["longitude"])) * 111_320 * cos(mean_latitude)
                 distance = (lat_delta * lat_delta + lon_delta * lon_delta) ** 0.5
                 if distance <= float(z.get("radius") or 0) + float(other.get("radius") or 0):
                     overlaps.append(str(other.get("id", other.get("name"))))

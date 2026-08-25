@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from .const import DOMAIN
 
 try:  # Keep the deterministic engine importable in standalone test tooling.
@@ -17,7 +19,7 @@ except ImportError:  # Home Assistant supplies these at runtime.
     async_register_panel = None
 
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+async def async_setup(hass: HomeAssistant, _config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     if async_register_websocket_commands:
         async_register_websocket_commands(hass)
@@ -27,9 +29,11 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = entry.data | dict(entry.options)
+    await asyncio.sleep(0)
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
+    await asyncio.sleep(0)
     return True

@@ -7,7 +7,7 @@ DEFAULT_CONFIG = {
     "schema_version": VERSION,
     "modules": DEFAULT_MODULES,
     "categories": {
-        "scopes": ["automation", "script"],
+        "scopes": ["automation", "script", "scene"],
         "require_icon": False,
         "min_length": 0,
         "language": "any",
@@ -17,6 +17,7 @@ DEFAULT_CONFIG = {
     },
     "zones": {
         "detect_duplicate_geometry": True,
+        "detect_overlapping_geometry": True,
         "min_radius": 0,
         "max_radius": 0,
         "require_icon": False,
@@ -24,6 +25,8 @@ DEFAULT_CONFIG = {
     "labels": {
         "min_name_length": 1,
         "min_description_length": 0,
+        "require_icon": False,
+        "require_color": False,
     },
     "entity_id_pattern": "{domain}.{area}_{device}_{entity}",
     "entity_id_mode": "builder",

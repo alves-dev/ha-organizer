@@ -24,15 +24,24 @@ from .core import overview, scan
 
 MAX_CATEGORY_NAME_LENGTH = 10000
 MAX_NUMERIC_SETTING = 1000000
-MAX_SCOPES = 2
+MAX_SCOPES = 3
 MAX_DOMAIN_LENGTH = 64
 MAX_PATTERN_LENGTH = 256
 MAX_REVIEW_KEY_LENGTH = 1024
 MAX_FINGERPRINT_LENGTH = 256
+ADMIN_REQUIRED = "Administrator required"
 
 
 def _admin(connection):
     return connection.user and connection.user.is_admin
+
+
+def _entity_area(areas_reg, device, entity):
+    if entity.area_id:
+        return areas_reg.async_get_area(entity.area_id)
+    if device and device.area_id:
+        return areas_reg.async_get_area(device.area_id)
+    return None
 
 
 def _validate_categories(categories):
@@ -56,7 +65,12 @@ def _validate_categories(categories):
 def _validate_boolean_settings(config):
     fields_by_section = {
         "categories": ("require_icon", "allow_spaces", "allow_punctuation"),
-        "zones": ("detect_duplicate_geometry", "require_icon"),
+        "zones": (
+            "detect_duplicate_geometry",
+            "detect_overlapping_geometry",
+            "require_icon",
+        ),
+        "labels": ("require_icon", "require_color"),
     }
     for section, fields in fields_by_section.items():
         if not isinstance(config.get(section), dict):
@@ -99,7 +113,7 @@ def _validate_labels(labels):
         raise ValueError("labels.min_name_length must be at least 1")
 
 
-def _validate_config_shape(config):  # noqa: PLR0912
+def _validate_config_shape(config):  # noqa: PLR0912  # NOSONAR
     if not isinstance(config, dict):
         raise ValueError("config must be an object")
     modules = config.get("modules")
@@ -129,7 +143,7 @@ def _validate_config_shape(config):  # noqa: PLR0912
             raise ValueError(f"modules.{module}.settings must be an object")
     scopes = config.get("categories", {}).get("scopes")
     if not isinstance(scopes, list) or any(
-        scope not in ("automation", "script") for scope in scopes
+        scope not in ("automation", "script", "scene") for scope in scopes
     ):
         raise ValueError("categories.scopes is invalid")
     if len(scopes) > MAX_SCOPES:
@@ -205,24 +219,37 @@ async def _store(hass):
     }
 
 
-def _snapshot(hass):
+def _snapshot(hass):  # noqa: PLR0912  # NOSONAR
     areas_reg = ar.async_get(hass)
     devices_reg = dr.async_get(hass)
     entities_reg = er.async_get(hass)
+    devices_by_area = {}
+    for device in devices_reg.devices.values():
+        if device.area_id:
+            devices_by_area.setdefault(device.area_id, []).append(device)
+    entities_by_area = {}
+    for entity in entities_reg.entities.values():
+        device = devices_reg.async_get(entity.device_id) if entity.device_id else None
+        area = _entity_area(areas_reg, device, entity)
+        if area:
+            entities_by_area.setdefault(area.id, []).append(entity.entity_id)
     areas = []
     for area in areas_reg.areas.values():
-        devices = [d.id for d in devices_reg.devices.values() if d.area_id == area.id]
-        entities = [
-            e.entity_id
-            for e in entities_reg.entities.values()
-            if e.area_id == area.id or e.device_id in devices
-        ]
+        area_devices = devices_by_area.get(area.id, [])
+        devices = [d.id for d in area_devices]
+        entities = entities_by_area.get(area.id, [])
         areas.append(
             {
                 "id": area.id,
                 "name": area.name,
                 "floor": getattr(area, "floor", None),
+                "icon": getattr(area, "icon", None),
+                "picture": getattr(area, "picture", None),
+                "aliases": list(getattr(area, "aliases", ()) or ()),
                 "devices": devices,
+                "device_details": [
+                    {"id": d.id, "name": d.name_by_user or d.name} for d in area_devices
+                ],
                 "entities": entities,
             }
         )
@@ -234,15 +261,7 @@ def _snapshot(hass):
     entities = []
     for e in entities_reg.entities.values():
         device = devices_reg.async_get(e.device_id) if e.device_id else None
-        area = (
-            areas_reg.async_get_area(e.area_id)
-            if e.area_id
-            else (
-                areas_reg.async_get_area(device.area_id)
-                if device and device.area_id
-                else None
-            )
-        )
+        area = _entity_area(areas_reg, device, e)
         entities.append(
             {
                 "entity_id": e.entity_id,
@@ -285,32 +304,41 @@ def _snapshot(hass):
             if assistants:
                 state = hass.states.get(entity_id)
                 registry_entry = entities_reg.async_get(entity_id)
-                exposed.append({
-                    "entity_id": entity_id,
-                    "name": (registry_entry.name if registry_entry else None)
-                    or (state.attributes.get("friendly_name") if state else None)
-                    or entity_id,
-                    "aliases": [alias for alias in (registry_entry.aliases or [])
-                                if isinstance(alias, str)]
-                    if registry_entry else [],
-                    "assistants": sorted(assistants),
-                })
+                exposed.append(
+                    {
+                        "entity_id": entity_id,
+                        "name": (registry_entry.name if registry_entry else None)
+                        or (state.attributes.get("friendly_name") if state else None)
+                        or entity_id,
+                        "aliases": [
+                            alias
+                            for alias in (registry_entry.aliases or [])
+                            if isinstance(alias, str)
+                        ]
+                        if registry_entry
+                        else [],
+                        "assistants": sorted(assistants),
+                    }
+                )
     categories = {}
     category_registry = cr.async_get(hass)
-    for scope in ("automation", "script"):
+    category_entities = {scope: {} for scope in ("automation", "script", "scene")}
+    for entry in entities_reg.entities.values():
+        for scope, category_id in entry.categories.items():
+            if scope in category_entities:
+                category_entities[scope].setdefault(category_id, []).append(
+                    entry.entity_id
+                )
+    for scope in ("automation", "script", "scene"):
         scope_categories = []
         for category in category_registry.async_list_categories(scope=scope):
-            resources = [
-                entry.entity_id
-                for entry in entities_reg.entities.values()
-                if entry.categories.get(scope) == category.category_id
-            ]
+            resources = sorted(category_entities[scope].get(category.category_id, []))
             scope_categories.append(
                 {
                     "id": category.category_id,
                     "name": category.name,
                     "icon": category.icon,
-                    "entities": sorted(resources),
+                    "entities": resources,
                 }
             )
         categories[scope] = scope_categories
@@ -339,14 +367,12 @@ def _snapshot(hass):
 
 
 @callback
-def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915
+def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # NOSONAR
     @websocket_api.websocket_command({"type": "ha_organizer/config/get"})
     @websocket_api.async_response
     async def config_get(hass, connection, msg):
         if not _admin(connection):
-            return connection.send_error(
-                msg["id"], "not_allowed", "Administrator required"
-            )
+            return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
         _, data = await _store(hass)
         connection.send_result(msg["id"], data.get("config", DEFAULT_CONFIG))
 
@@ -356,9 +382,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915
     @websocket_api.async_response
     async def config_update(hass, connection, msg):
         if not _admin(connection):
-            return connection.send_error(
-                msg["id"], "not_allowed", "Administrator required"
-            )
+            return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
         store, data = await _store(hass)
         incoming = msg["config"]
         try:
@@ -372,9 +396,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915
     @websocket_api.async_response
     async def reviews_reset(hass, connection, msg):
         if not _admin(connection):
-            return connection.send_error(
-                msg["id"], "not_allowed", "Administrator required"
-            )
+            return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
         store, data = await _store(hass)
         data["reviews"] = {}
         data["last_scan"] = None
@@ -385,9 +407,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915
     @websocket_api.async_response
     async def config_reset(hass, connection, msg):
         if not _admin(connection):
-            return connection.send_error(
-                msg["id"], "not_allowed", "Administrator required"
-            )
+            return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
         store, data = await _store(hass)
         data["config"] = deepcopy(DEFAULT_CONFIG)
         data["last_scan"] = None
@@ -398,9 +418,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915
     @websocket_api.async_response
     async def do_scan(hass, connection, msg):
         if not _admin(connection):
-            return connection.send_error(
-                msg["id"], "not_allowed", "Administrator required"
-            )
+            return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
         store, data = await _store(hass)
         result = scan(
             _snapshot(hass), data.get("config", DEFAULT_CONFIG), data.get("reviews", {})
@@ -423,9 +441,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915
     @websocket_api.async_response
     async def review_set(hass, connection, msg):
         if not _admin(connection):
-            return connection.send_error(
-                msg["id"], "not_allowed", "Administrator required"
-            )
+            return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
         store, data = await _store(hass)
         status = msg["status"]
         if status not in ("reviewed", "ignored", "pending"):
@@ -454,9 +470,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915
     @websocket_api.async_response
     async def get_overview(hass, connection, msg):
         if not _admin(connection):
-            return connection.send_error(
-                msg["id"], "not_allowed", "Administrator required"
-            )
+            return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
         _, data = await _store(hass)
         connection.send_result(
             msg["id"], overview(data.get("last_scan") or {"modules": {}})

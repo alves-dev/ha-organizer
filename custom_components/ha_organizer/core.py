@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from hashlib import sha256
 import json
+from math import cos, radians
 import re
 from typing import Any
 import unicodedata
@@ -67,11 +68,11 @@ class Finding:
 
 
 def _status(findings: list[Finding], attention=False) -> str:
-    return (
-        "non_compliant"
-        if findings and any(f.severity == "error" for f in findings)
-        else ("attention" if findings or attention else "compliant")
-    )
+    if findings and any(f.severity == "error" for f in findings):
+        return "non_compliant"
+    if findings or attention:
+        return "attention"
+    return "compliant"
 
 
 def _item(module, item_id, title, relevant, findings=None, **extra):
@@ -95,10 +96,10 @@ def _groups(items: list[dict], key_fn):
     return groups
 
 
-def categories(snapshot: dict, settings=None) -> list[dict]:  # noqa: PLR0912
+def categories(snapshot: dict, settings=None) -> list[dict]:  # noqa: PLR0912  # NOSONAR
     settings = settings or {}
     settings = {
-        "scopes": ["automation", "script"],
+        "scopes": ["automation", "script", "scene"],
         "require_icon": False,
         "min_length": 0,
         "language": "any",
@@ -112,8 +113,8 @@ def categories(snapshot: dict, settings=None) -> list[dict]:  # noqa: PLR0912
     def normalizer(value):
         return normalize(value, **normalization)
 
-    configured_scopes = settings.get("scopes", ["automation", "script"])
-    scopes = configured_scopes or ["automation", "script"]
+    configured_scopes = settings.get("scopes", ["automation", "script", "scene"])
+    scopes = configured_scopes or ["automation", "script", "scene"]
     compare = settings.get("compare", len(configured_scopes) > 1)
     sources = {scope: snapshot.get("categories", {}).get(scope, []) for scope in scopes}
     rows = {}
@@ -174,11 +175,11 @@ def categories(snapshot: dict, settings=None) -> list[dict]:  # noqa: PLR0912
                 Finding(
                     "category_icon_variants",
                     "warning",
-                    "Ícones diferentes entre automações e scripts",
+                    "Category icons differ across selected scopes",
                     sorted(row["names"]),
                 )
             )
-        category_name = sorted(row["names"])[0]
+        category_name = min(row["names"])
         if settings["require_icon"] and not row["icons"]:
             findings.append(
                 Finding(
@@ -266,14 +267,57 @@ def categories(snapshot: dict, settings=None) -> list[dict]:  # noqa: PLR0912
                     "scopes": row["scopes"],
                     "resources": row["resources"],
                     "icons": sorted(row["icons"]),
+                    "icons_by_scope": row["icons_by_scope"],
                 },
                 findings,
                 scopes=row["scopes"],
                 resources=row["resources"],
                 icon=next(iter(sorted(row["icons"])), None),
+                icons_by_scope=row["icons_by_scope"],
             )
         )
     return result
+
+
+def _area_policy_findings(area: dict, area_id: str, settings: dict) -> list[Finding]:
+    findings = []
+    if settings.get("require_floor") and not area.get("floor"):
+        findings.append(
+            Finding("area_floor_required", "warning", "Area has no floor", [area_id])
+        )
+    if settings.get("require_aliases") and not area.get("aliases"):
+        findings.append(
+            Finding(
+                "area_aliases_required", "warning", "Area has no aliases", [area_id]
+            )
+        )
+    if settings.get("require_picture") and not area.get("picture"):
+        findings.append(
+            Finding(
+                "area_picture_required", "warning", "Area has no picture", [area_id]
+            )
+        )
+    name = str(area.get("name", ""))
+    case_policy = settings.get("case_policy", "any")
+    if case_policy == "capitalized" and area.get("name") != name.capitalize():
+        findings.append(
+            Finding(
+                "area_case_policy",
+                "warning",
+                "Area name must start with an uppercase letter",
+                [area_id],
+            )
+        )
+    if case_policy == "lowercase" and area.get("name") != name.lower():
+        findings.append(
+            Finding(
+                "area_case_policy",
+                "warning",
+                "Area name must use lowercase only",
+                [area_id],
+            )
+        )
+    return findings
 
 
 def areas(snapshot: dict, settings=None) -> list[dict]:
@@ -300,6 +344,7 @@ def areas(snapshot: dict, settings=None) -> list[dict]:
             )
         devices = area.get("devices", [])
         entities = area.get("entities", [])
+        findings.extend(_area_policy_findings(area, str(aid), settings))
         result.append(
             _item(
                 "areas",
@@ -313,7 +358,12 @@ def areas(snapshot: dict, settings=None) -> list[dict]:
                 },
                 findings,
                 **{k: area.get(k, []) for k in ("devices", "entities")},
+                device_details=area.get("device_details", []),
                 floor=area.get("floor"),
+                icon=area.get("icon"),
+                picture=area.get("picture"),
+                aliases=area.get("aliases", []),
+                area_kind="area",
             )
         )
     for device in snapshot.get("devices_without_area", []):
@@ -334,14 +384,17 @@ def areas(snapshot: dict, settings=None) -> list[dict]:
                 ],
                 attention=True,
                 devices=[device],
+                device_details=[device],
+                area_kind="unassigned_device",
             )
         )
     return result
 
 
-def zones(snapshot: dict, settings=None) -> list[dict]:
+def zones(snapshot: dict, settings=None) -> list[dict]:  # NOSONAR
     settings = {
         "detect_duplicate_geometry": True,
+        "detect_overlapping_geometry": True,
         "min_radius": 0,
         "max_radius": 0,
         "require_icon": False,
@@ -349,30 +402,63 @@ def zones(snapshot: dict, settings=None) -> list[dict]:
     }
     values = snapshot.get("zones", [])
     result = []
-    by_center = {}
-    for z in values:
-        by_center.setdefault(
-            (z.get("latitude"), z.get("longitude"), z.get("radius")), []
-        ).append(z)
     for z in values:
         zid = z.get("id") or z.get("zone_id") or z.get("name")
         findings = []
-        dup = [
-            x
-            for x in by_center[(z.get("latitude"), z.get("longitude"), z.get("radius"))]
-            if x is not z
-        ]
+        duplicate_geometry = []
+        overlaps = []
         if (
-            settings["detect_duplicate_geometry"]
-            and dup
-            and str(zid).casefold() != "home"
+            (
+                settings["detect_duplicate_geometry"]
+                or settings["detect_overlapping_geometry"]
+            )
+            and z.get("latitude") is not None
+            and z.get("longitude") is not None
         ):
+            for other in values:
+                if (
+                    other is z
+                    or other.get("latitude") is None
+                    or other.get("longitude") is None
+                ):
+                    continue
+                mean_latitude = radians(
+                    (float(z["latitude"]) + float(other["latitude"])) / 2
+                )
+                lat_delta = (float(z["latitude"]) - float(other["latitude"])) * 111_320
+                lon_delta = (
+                    (float(z["longitude"]) - float(other["longitude"]))
+                    * 111_320
+                    * cos(mean_latitude)
+                )
+                distance = (lat_delta * lat_delta + lon_delta * lon_delta) ** 0.5
+                other_id = str(other.get("id", other.get("name")))
+                if (
+                    settings["detect_duplicate_geometry"]
+                    and distance == 0
+                    and float(z.get("radius") or 0) == float(other.get("radius") or 0)
+                ):
+                    duplicate_geometry.append(other_id)
+                elif settings["detect_overlapping_geometry"] and distance <= float(
+                    z.get("radius") or 0
+                ) + float(other.get("radius") or 0):
+                    overlaps.append(other_id)
+        if duplicate_geometry and str(zid).casefold() != "home":
             findings.append(
                 Finding(
                     "duplicate_zone_geometry",
                     "error",
-                    "Zona com centro e raio idênticos",
-                    [str(x.get("id", x.get("name"))) for x in dup],
+                    "Zone has the same center and radius as another zone",
+                    sorted(duplicate_geometry),
+                )
+            )
+        if overlaps and str(zid).casefold() != "home":
+            findings.append(
+                Finding(
+                    "overlapping_zone_geometry",
+                    "warning",
+                    "Zone overlaps another zone",
+                    sorted(overlaps),
                 )
             )
         if not z.get("name"):
@@ -381,9 +467,7 @@ def zones(snapshot: dict, settings=None) -> list[dict]:
             )
         if settings["require_icon"] and not z.get("icon"):
             findings.append(
-                Finding(
-                    "zone_icon_required", "info", "Zona sem ícone", [str(zid)]
-                )
+                Finding("zone_icon_required", "info", "Zona sem ícone", [str(zid)])
             )
         if settings["min_radius"] and (z.get("radius") or 0) < settings["min_radius"]:
             findings.append(
@@ -430,8 +514,47 @@ def zones(snapshot: dict, settings=None) -> list[dict]:
     return result
 
 
+def _label_policy_findings(
+    label: dict, label_id: str, name: str, description: str, settings: dict
+) -> list[Finding]:
+    findings = []
+    if len(name.strip()) < settings["min_name_length"]:
+        findings.append(
+            Finding(
+                "label_name_length",
+                "warning",
+                "Label name is shorter than the configured minimum",
+                [label_id],
+            )
+        )
+    if len(description.strip()) < settings["min_description_length"]:
+        findings.append(
+            Finding(
+                "label_description_length",
+                "warning",
+                "Label description is shorter than the configured minimum",
+                [label_id],
+            )
+        )
+    if settings["require_icon"] and not label.get("icon"):
+        findings.append(
+            Finding("label_icon_required", "warning", "Label has no icon", [label_id])
+        )
+    if settings["require_color"] and not label.get("color"):
+        findings.append(
+            Finding("label_color_required", "warning", "Label has no color", [label_id])
+        )
+    return findings
+
+
 def labels(snapshot: dict, settings=None) -> list[dict]:
-    settings = {"min_name_length": 1, "min_description_length": 0, **(settings or {})}
+    settings = {
+        "min_name_length": 1,
+        "min_description_length": 0,
+        "require_icon": False,
+        "require_color": False,
+        **(settings or {}),
+    }
 
     def normalizer(value):
         return normalize(value, **settings.get("normalization", {}))
@@ -444,24 +567,9 @@ def labels(snapshot: dict, settings=None) -> list[dict]:
         findings = []
         name = label.get("name") or label_id
         description = label.get("description") or ""
-        if len(name.strip()) < settings["min_name_length"]:
-            findings.append(
-                Finding(
-                    "label_name_length",
-                    "warning",
-                    "Label name is shorter than the configured minimum",
-                    [str(label_id)],
-                )
-            )
-        if len(description.strip()) < settings["min_description_length"]:
-            findings.append(
-                Finding(
-                    "label_description_length",
-                    "warning",
-                    "Label description is shorter than the configured minimum",
-                    [str(label_id)],
-                )
-            )
+        findings.extend(
+            _label_policy_findings(label, str(label_id), name, description, settings)
+        )
         matching = by_name.get(normalizer(label.get("name")), [])
         if len(matching) > 1:
             findings.append(
@@ -487,7 +595,7 @@ def labels(snapshot: dict, settings=None) -> list[dict]:
     return result
 
 
-def entity_ids(snapshot: dict, settings=None) -> list[dict]:
+def entity_ids(snapshot: dict, settings=None) -> list[dict]:  # NOSONAR
     settings = settings or {}
     pattern = settings.get("pattern", "{domain}.{area}_{device}_{entity}")
     excluded = set(settings.get("excluded_domains", []))
@@ -500,7 +608,7 @@ def entity_ids(snapshot: dict, settings=None) -> list[dict]:
         if domain not in excluded:
             parts = eid.split(".", 1)
             tokens = re.split(r"[_\s-]+", parts[1] if len(parts) > 1 else "")
-            if not domain or not parts[1] or re.search(r"(?:_\d+)$", eid):
+            if not domain or not parts[1] or re.search(r"_\d+$", eid):
                 findings.append(
                     Finding(
                         "entity_id_format",
@@ -586,20 +694,14 @@ def exposed(snapshot: dict, settings=None) -> list[dict]:
             key = pending.pop()
             entity_ids = {eid for eid, _ in entries_by_key[key]}
             linked = {
-                linked_key
-                for eid in entity_ids
-                for linked_key in keys_by_entity[eid]
+                linked_key for eid in entity_ids for linked_key in keys_by_entity[eid]
             }
             new_keys = linked & unvisited
             component.update(new_keys)
             unvisited -= new_keys
             pending.extend(new_keys)
 
-        entries = [
-            entry
-            for key in component
-            for entry in entries_by_key[key]
-        ]
+        entries = [entry for key in component for entry in entries_by_key[key]]
         refs = sorted({eid for eid, _ in entries})
         title = next(entities[eid][0] for eid in refs)
         key = normalizer(title)
@@ -616,7 +718,19 @@ def exposed(snapshot: dict, settings=None) -> list[dict]:
         relevant = {
             "key": key,
             "entries": [
-                {"entity_id": eid, "name": name} for eid, name in entries
+                {
+                    "entity_id": eid,
+                    "name": name,
+                    "assistants": next(
+                        (
+                            value.get("assistants", [])
+                            for value in values
+                            if value.get("entity_id") == eid
+                        ),
+                        [],
+                    ),
+                }
+                for eid, name in entries
             ],
         }
         result.append(
@@ -659,24 +773,26 @@ def apply_reviews(items: list[dict], reviews: dict) -> list[dict]:
     return items
 
 
-def scan(snapshot: dict, config: dict, reviews=None) -> dict:
+def _module_settings(module, options, config):
+    settings = options.get("settings", {})
+    defaults = {
+        "categories": config.get("categories", {}),
+        "zones": config.get("zones", {}),
+        "labels": config.get("labels", {}),
+        "entity_ids": {
+            "pattern": config.get("entity_id_pattern", "{domain}.{entity}"),
+            "excluded_domains": config.get("excluded_domains", []),
+        },
+    }
+    return {**defaults.get(module, {}), **settings}
+
+
+def scan(snapshot: dict, config: dict, reviews=None) -> dict:  # NOSONAR
     reviews = reviews or {}
     modules = {}
     for module, options in config.get("modules", {}).items():
         if options.get("enabled", True):
-            settings = options.get("settings", {})
-            if module == "categories":
-                settings = {**config.get("categories", {}), **settings}
-            if module == "zones":
-                settings = {**config.get("zones", {}), **settings}
-            if module == "labels":
-                settings = {**config.get("labels", {}), **settings}
-            if module == "entity_ids":
-                settings = {
-                    "pattern": config.get("entity_id_pattern", "{domain}.{entity}"),
-                    "excluded_domains": config.get("excluded_domains", []),
-                    **settings,
-                }
+            settings = _module_settings(module, options, config)
             modules[module] = apply_reviews(
                 GENERATORS[module](snapshot, settings), reviews
             )
@@ -708,8 +824,7 @@ def overview(result: dict) -> dict:
     module_progress = {}
     for module, items in result.get("modules", {}).items():
         reviewed = sum(
-            item.get("review_status") in ("reviewed", "ignored")
-            for item in items
+            item.get("review_status") in ("reviewed", "ignored") for item in items
         )
         module_progress[module] = {
             "total": len(items),

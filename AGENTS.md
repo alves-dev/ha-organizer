@@ -18,7 +18,7 @@
 - A instalação da integração usa um fluxo mínimo. As políticas são configuradas depois, na página `Settings`.
 - A interface deve ser apresentada em inglês inicialmente. A tradução atual acontece na camada da UI; nomes e dados do usuário não devem ser traduzidos.
 - Os módulos atuais são Overview, Categories, Areas, Zones, Labels, Entity IDs e Exposed & Aliases.
-- Categories compara automações e scripts com uma única opção `compare`. Quando habilitada, compara também os ícones; quando desabilitada, os escopos permanecem independentes.
+- Categories usam uma única opção para exigir igualdade entre Automation, Script e Scene. Quando habilitada, compara também os ícones; quando desabilitada, os três escopos permanecem independentes.
 - Cada módulo possui sua própria política de normalização. Não reintroduzir uma seção de normalização compartilhada.
 - Entity IDs usam a política que o usuário cola em Settings, inspirada nos tokens configuráveis do Home Assistant (`area`, `device`, `entity` e eventualmente `floor`). O Home Assistant não oferece uma política global simples para ser lida como configuração do Organizer.
 - Labels são obtidos pelo `label_registry` e possuem atalho para `/config/labels`.
@@ -30,6 +30,8 @@
 - O conceito de ícone ativo durante os testes é o número 2, salvo em `custom_components/ha_organizer/icon.png`; os demais conceitos ficam em `examples/icons/` como referência.
 - O painel serve o ícone por `/ha_organizer/icon.png` e a cópia para o ambiente local deve ser feita com `.dev/copy-to-core.sh`.
 - Links nativos de edição devem permanecer como links simples para as rotas do Home Assistant e não devem tentar editar dados por WebSocket do Organizer.
+- Todos os links renderizados pelo Organizer devem abrir em outra aba do navegador, usando `target="_blank"` e `rel="noopener noreferrer"`.
+- Sempre que um recurso possuir ícone, a interface deve mostrar tanto o símbolo visual quanto o nome técnico do ícone, quando disponível.
 
 ## Validação do SonarQube
 

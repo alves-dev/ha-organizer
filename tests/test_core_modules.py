@@ -107,6 +107,29 @@ def test_areas_detect_duplicate_names_and_devices_without_area():
     assert rows[-1]["item_key"] == "areas:device:orphan"
 
 
+def test_areas_apply_metadata_and_case_policies():
+    rows = areas(
+        {"areas": [{"id": "office", "name": "office"}]},
+        {
+            "require_floor": True,
+            "require_aliases": True,
+            "require_picture": True,
+            "case_policy": "capitalized",
+        },
+    )
+    assert {finding["rule_id"] for finding in rows[0]["findings"]} == {
+        "area_floor_required",
+        "area_aliases_required",
+        "area_picture_required",
+        "area_case_policy",
+    }
+    lowercase = areas(
+        {"areas": [{"id": "office", "name": "Office"}]},
+        {"case_policy": "lowercase"},
+    )
+    assert lowercase[0]["findings"][0]["rule_id"] == "area_case_policy"
+
+
 def test_zones_detect_geometry_and_policy_findings_but_not_home_duplicates():
     rows = zones(
         {
@@ -154,6 +177,17 @@ def test_labels_detect_short_descriptions_and_duplicates():
     )
     assert all(row["compliance_status"] == "non_compliant" for row in rows)
     assert any(f["rule_id"] == "duplicate_label_name" for f in rows[0]["findings"])
+
+
+def test_labels_apply_icon_and_color_policies():
+    rows = labels(
+        {"labels": [{"id": "living_room", "name": "Living Room"}]},
+        {"require_icon": True, "require_color": True},
+    )
+    assert {finding["rule_id"] for finding in rows[0]["findings"]} == {
+        "label_icon_required",
+        "label_color_required",
+    }
 
 
 def test_entity_ids_check_format_pattern_and_exclusions():

@@ -1,12 +1,12 @@
 #!/bin/sh
-# Start the local Home Assistant instance used to test Activity Tracker.
+# Start the local Home Assistant instance used to test HA Organizer.
 
 set -eu
 
 readonly HA_CORE_DIR="/home/alves-dev/projects/others/core"
 readonly HA_CONFIG_DIR="$HA_CORE_DIR/config"
-readonly PID_FILE="/tmp/ha-activity-tracker-home-assistant.pid"
-readonly LOG_FILE="/tmp/ha-activity-tracker-home-assistant.log"
+readonly PID_FILE="/tmp/ha-organizer-home-assistant.pid"
+readonly LOG_FILE="/tmp/ha-organizer-home-assistant.log"
 readonly HEALTH_URL="http://127.0.0.1:8123/"
 readonly START_TIMEOUT_SECONDS=30
 
@@ -37,7 +37,7 @@ if [ -r "$PID_FILE" ]; then
 fi
 
 cd "$HA_CORE_DIR"
-# Do not let the Activity Tracker virtual environment override Home Assistant's.
+# Do not let an active project virtual environment override Home Assistant's.
 unset VIRTUAL_ENV
 
 # A distinct session lets the local instance survive the shell that launched it.

@@ -1,5 +1,68 @@
 # Instruções de desenvolvimento do HA Organizer
 
+## Context Mesh
+
+Before starting any work, load the relevant Context Mesh files in addition to the project instructions below:
+
+- `@context/intent/project-intent.md` (always)
+- `@context/intent/feature-*.md` for the affected capability
+- Relevant files in `@context/decisions/`
+- Relevant files in `@context/knowledge/patterns/`
+
+### Context Rules
+
+- Feature files describe only user value, functional behaviour, and acceptance criteria.
+- Decision files record technical choices, rationale, and alternatives.
+- Pattern files contain code examples and implementation guidance.
+- Follow the mandatory Plan → Approve → Execute sequence in `@context/.context-mesh-framework.md` for material changes.
+- After an approved change, update affected intent, decision outcomes, patterns when applicable, and `@context/evolution/changelog.md`.
+
+## Setup Commands
+
+- Install: `uv sync`
+- Update the local instance: `dev/copy-to-core.sh`
+- Start the local instance: `dev/start-ha.sh`
+- Stop the local instance: `dev/stop-ha.sh`
+- Test: `uv run pytest`
+- Lint: `uv run ruff check custom_components/ha_organizer tests`
+- Coverage: `uv run pytest --cov=custom_components/ha_organizer --cov-report=term --cov-report=xml`
+
+Do not run test, lint, or validation commands automatically during beta exploratory work unless the user explicitly asks.
+
+### Local Home Assistant Workflow
+
+The three `dev/` scripts are the standard workflow for updating and running the local Home Assistant instance:
+
+1. Run `dev/stop-ha.sh` before replacing the installed integration.
+2. Run `dev/copy-to-core.sh` to copy the current integration to the local instance.
+3. Run `dev/start-ha.sh` to launch the local instance.
+
+Use the Home Assistant MCP (or Chrome DevTools) for exploratory tests when needed. Validate the UI, browser console, and network at `http://localhost:8123`; use the project-specific local test account only in that environment.
+
+## Code Style
+
+- Python targets 3.14 and uses Ruff with an 88-character line length.
+- Keep the audit engine deterministic and independent of Home Assistant I/O.
+- Follow `@context/knowledge/patterns/` for reusable implementation structures.
+
+## Project Structure
+
+```text
+root/
+├── AGENTS.md
+├── context/
+│   ├── intent/
+│   ├── decisions/
+│   ├── knowledge/
+│   ├── agents/
+│   └── evolution/
+├── custom_components/ha_organizer/
+│   ├── frontend/
+│   └── brand/
+├── tests/
+└── docs/
+```
+
 ## Fluxo de trabalho durante a versão beta
 
 - Durante a fase de testes exploratórios da versão beta, não executar automaticamente a suíte de testes, testes unitários, lint ou validações equivalentes, salvo solicitação explícita do usuário.
@@ -7,7 +70,7 @@
 - Para investigar falhas encontradas durante os testes locais do usuário, consultar o log do Home Assistant em:
   `/home/alves-dev/projects/others/core/config/home-assistant.log`
 - O agente possui acesso ao Home Assistant local por MCP/Chrome DevTools para testes exploratórios da integração. Usar `http://localhost:8123`, autenticar com `igor` / `dev` e validar a UI, console e rede quando necessário. Essa credencial é exclusiva do ambiente local de teste e não deve ser reutilizada fora dele.
-- O Home Assistant local pode ser iniciado e parado pelo terminal no diretório `/home/alves-dev/projects/others/core`, usando `uv run --project . python -m homeassistant --config config` (ou a configuração equivalente do PyCharm). Para substituir arquivos da integração, parar o processo antes e iniciá-lo novamente após a cópia.
+- O Home Assistant local pode ser atualizado e controlado pelos scripts `dev/stop-ha.sh`, `dev/copy-to-core.sh` e `dev/start-ha.sh`. Para substituir arquivos da integração, parar o processo antes e iniciá-lo novamente após a cópia.
 - Não alterar o projeto de referência em `/home/alves-dev/projects/python/ia-usage`.
 - Alterações devem permanecer neste repositório, exceto quando o usuário solicitar explicitamente uma operação de cópia ou implantação.
 
@@ -28,7 +91,7 @@
   - Exposed: `/config/voice-assistants/expose`
 - Entidades expostas devem ser consultadas pela API interna de exposição do Home Assistant (`DATA_EXPOSED_ENTITIES`, `KNOWN_ASSISTANTS` e `async_should_expose`), incluindo configurações do Entity Registry.
 - O conceito de ícone ativo durante os testes é o número 2, salvo em `custom_components/ha_organizer/icon.png`; os demais conceitos ficam em `examples/icons/` como referência.
-- O painel serve o ícone por `/ha_organizer/icon.png` e a cópia para o ambiente local deve ser feita com `.dev/copy-to-core.sh`.
+- O painel serve o ícone por `/ha_organizer/icon.png` e a cópia para o ambiente local deve ser feita com `dev/copy-to-core.sh`.
 - Links nativos de edição devem permanecer como links simples para as rotas do Home Assistant e não devem tentar editar dados por WebSocket do Organizer.
 - Todos os links renderizados pelo Organizer devem abrir em outra aba do navegador, usando `target="_blank"` e `rel="noopener noreferrer"`.
 - Sempre que um recurso possuir ícone, a interface deve mostrar tanto o símbolo visual quanto o nome técnico do ícone, quando disponível.

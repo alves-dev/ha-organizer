@@ -1,0 +1,33 @@
+# Changelog
+
+## [Unreleased]
+
+### Changed
+
+- Moved the local integration copy script to `dev/copy-to-core.sh` and documented the stop, update, start, and MCP exploratory-test workflow for agents.
+
+## [Current State] - Context Mesh Added
+
+### Existing Features (documented)
+
+- Overview and review progress - consolidated audit status and continuation of reviews.
+- Category consistency - audits selected category scopes.
+- Area, zone, and label inventories - identify organization issues in native resources.
+- Entity ID policy audit - checks identifiers against an administrator policy.
+- Exposed names and aliases - identifies potential voice-control collisions.
+
+### Tech Stack (documented)
+
+- Python 3.14 Home Assistant custom integration targeting Home Assistant 2026.8.0.
+- Native custom panel web component with Home Assistant WebSocket commands.
+- `uv` environment management, pytest tooling, Ruff, and SonarQube configuration.
+
+### Patterns Identified
+
+- Canonical findings and fingerprint-based stale reviews.
+- Registry snapshot boundary around a pure audit engine.
+- Administrator-protected WebSocket commands for Organizer-owned state.
+
+*Context Mesh added: 2026-08-28*
+*This changelog documents the state when Context Mesh was added.*
+*Future changes will be tracked below.*

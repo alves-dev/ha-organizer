@@ -3,7 +3,7 @@
 
 set -eu
 
-readonly PID_FILE="/tmp/ha-activity-tracker-home-assistant.pid"
+readonly PID_FILE="/tmp/ha-organizer-home-assistant.pid"
 readonly STOP_TIMEOUT_SECONDS=30
 readonly HA_CONFIG_DIR="/home/alves-dev/projects/others/core/config"
 

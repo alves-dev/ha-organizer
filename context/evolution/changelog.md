@@ -4,6 +4,9 @@
 
 ### Changed
 
+- The Organizer panel now inherits Home Assistant theme tokens for its main
+  surfaces, typography, borders, and primary actions, with accessible fallbacks
+  and semantic status colors.
 - Moved the local integration copy script to `dev/copy-to-core.sh` and documented the stop, update, start, and MCP exploratory-test workflow for agents.
 
 ## [Current State] - Context Mesh Added

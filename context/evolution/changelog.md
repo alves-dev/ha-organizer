@@ -10,6 +10,9 @@
 
 ### Changed
 
+- Areas now support recorded review after inspecting their devices. Devices
+  without an area can be searched by name, device ID, or entity ID and ignored
+  in an administrator-only batch action; Overview shows this review progress.
 - Added concise in-context descriptions to every Settings control so
   administrators can understand the audit effect before saving a policy.
 - Ordered Settings modules to match the panel workflow and standardized module

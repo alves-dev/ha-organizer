@@ -832,6 +832,24 @@ def overview(result: dict) -> dict:
             "progress": reviewed / len(items) if items else 1,
         }
 
+    area_items = result.get("modules", {}).get("areas", [])
+    area_review = {
+        "areas_total": sum(item.get("area_kind") == "area" for item in area_items),
+        "areas_reviewed": sum(
+            item.get("area_kind") == "area"
+            and item.get("review_status") == "reviewed"
+            for item in area_items
+        ),
+        "unassigned_total": sum(
+            item.get("area_kind") == "unassigned_device" for item in area_items
+        ),
+        "unassigned_ignored": sum(
+            item.get("area_kind") == "unassigned_device"
+            and item.get("review_status") == "ignored"
+            for item in area_items
+        ),
+    }
+
     return {
         "total": total,
         "review_progress": len(current) / total if total else 1,
@@ -839,4 +857,5 @@ def overview(result: dict) -> dict:
         "review": counts("review_status"),
         "stale": [i for i in all_items if i.get("review_status") == "stale"],
         "module_progress": module_progress,
+        "area_review": area_review,
     }

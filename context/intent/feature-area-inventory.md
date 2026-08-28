@@ -14,6 +14,9 @@ Clear area organization improves how an installation reflects its physical or lo
 - [x] Identifies duplicate names and unassigned resources that merit review.
 - [x] Supports recording review progress for inventory items.
 - [x] Provides a direct route to manage areas in Home Assistant.
+- [x] Retains each configured area-audit policy, including the required name
+  capitalization, after Settings is reopened.
+- [x] Explains the effect of every area-audit setting in the Settings interface.
 
 ## Related
 

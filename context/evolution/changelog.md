@@ -2,8 +2,18 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Settings now saves and restores every visible policy field in one update,
+  including the Areas name-capitalization policy and module-specific
+  normalization settings.
+
 ### Changed
 
+- Added concise in-context descriptions to every Settings control so
+  administrators can understand the audit effect before saving a policy.
+- Ordered Settings modules to match the panel workflow and standardized module
+  icons on Home Assistant's monochrome Material Design icon set.
 - The Organizer panel now inherits Home Assistant theme tokens for its main
   surfaces, typography, borders, and primary actions, with accessible fallbacks
   and semantic status colors.

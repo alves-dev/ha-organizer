@@ -113,6 +113,21 @@ def _validate_labels(labels):
         raise ValueError("labels.min_name_length must be at least 1")
 
 
+def _validate_module_settings(modules):
+    area_settings = modules.get("areas", {}).get("settings", {})
+    if not isinstance(area_settings, dict):
+        raise ValueError("modules.areas.settings must be an object")
+    for field in ("require_floor", "require_aliases", "require_picture"):
+        if field in area_settings and not isinstance(area_settings[field], bool):
+            raise ValueError(f"modules.areas.settings.{field} must be boolean")
+    if area_settings.get("case_policy", "any") not in (
+        "any",
+        "capitalized",
+        "lowercase",
+    ):
+        raise ValueError("modules.areas.settings.case_policy is invalid")
+
+
 def _validate_config_shape(config):  # noqa: PLR0912  # NOSONAR
     if not isinstance(config, dict):
         raise ValueError("config must be an object")
@@ -141,6 +156,7 @@ def _validate_config_shape(config):  # noqa: PLR0912  # NOSONAR
             raise ValueError(f"modules.{module}.enabled must be boolean")
         if "settings" in options and not isinstance(options["settings"], dict):
             raise ValueError(f"modules.{module}.settings must be an object")
+    _validate_module_settings(modules)
     scopes = config.get("categories", {}).get("scopes")
     if not isinstance(scopes, list) or any(
         scope not in ("automation", "script", "scene") for scope in scopes

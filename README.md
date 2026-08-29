@@ -9,9 +9,13 @@ organization of your installation. It provides a single place to inspect naming
 consistency, duplicate or missing resources, review progress, and links to the
 native Home Assistant screens where changes can be made manually.
 
-![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.8.0-41BDF5?style=flat-square)
+![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.8%2B-41BDF5?logo=homeassistant)
 ![HACS](https://img.shields.io/badge/HACS-Custom%20Integration-18BC9C?style=flat-square)
 ![Version](https://img.shields.io/badge/Version-2026.8.0-41BDF5?style=flat-square)
+[![Quality Gate](https://sonar.alves-dev.com/api/project_badges/measure?project=ha-organizer&metric=alert_status)](https://sonar.alves-dev.com/dashboard?id=ha-organizer)
+[![Coverage](https://sonar.alves-dev.com/api/project_badges/measure?project=ha-organizer&metric=coverage)](https://sonar.alves-dev.com/dashboard?id=ha-organizer)
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=alves-dev&repository=ha-organizer&category=integration)
 
 > HA Organizer is currently in beta. Audit rules and the interface may evolve
 > as the integration is used with more Home Assistant installations.
@@ -60,19 +64,23 @@ Reviewed and ignored items are associated with a fingerprint of the relevant
 data. If that data changes, the item becomes stale and can be reviewed again.
 Only the Organizer's own settings, review decisions, and scan data are stored.
 
+## HACS availability
+
+HA Organizer is not currently in the default HACS catalog; it is available as
+an HACS custom repository. Install it using
+`https://github.com/alves-dev/ha-organizer` and the **Integration** category.
+
 ## Installation
 
 ### HACS
 
-1. Open **HACS > Integrations**.
+1. Open **HACS > Integrations** and add
+   `https://github.com/alves-dev/ha-organizer` as a custom repository in the
+   **Integration** category.
 2. Search for **HA Organizer**.
 3. Install the integration and restart Home Assistant.
 4. Open **Settings > Devices & services > Add integration**.
 5. Search for **HA Organizer** and complete the minimal setup.
-
-If the repository is not yet listed in HACS, add
-`https://github.com/alves-dev/ha-organizer` as a custom repository with the
-**Integration** category.
 
 ### Manual
 
@@ -121,4 +129,4 @@ emphasis in the panel.
 
 ## License
 
-HA Organizer is distributed under the [MIT License](LICENSE.md).
+HA Organizer is distributed under the [MIT License](LICENSE).

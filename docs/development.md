@@ -50,16 +50,12 @@ of truth for the remote analysis.
 ## Local Home Assistant testing
 
 The local Home Assistant checkout is `/home/alves-dev/projects/others/core`.
-The integration can be copied with:
+Use the repository scripts to stop, update, and start the local instance:
 
 ```bash
-.dev/copy-to-core.sh
-```
-
-Start Home Assistant from that checkout with:
-
-```bash
-uv run --project . python -m homeassistant --config config
+dev/stop-ha.sh
+dev/copy-to-core.sh
+dev/start-ha.sh
 ```
 
 Use the browser MCP/Chrome DevTools against `http://localhost:8123` for

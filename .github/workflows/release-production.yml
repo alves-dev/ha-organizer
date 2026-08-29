@@ -11,20 +11,16 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: production-release-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
-    name: Create release from main
     runs-on: ubuntu-latest
-
     steps:
-      - name: Require main branch
-        if: github.ref != 'refs/heads/main'
-        run: |
-          echo "This workflow must be run from the main branch." >&2
-          exit 1
-
       - name: Checkout main
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: main
           fetch-depth: 0
@@ -32,36 +28,16 @@ jobs:
       - name: Prepare release metadata
         id: release
         run: |
+          test "${GITHUB_REF}" = "refs/heads/main" || { echo "Production releases must run from main." >&2; exit 1; }
           version="$(jq -r '.version // empty' custom_components/ha_organizer/manifest.json)"
-
-          if [ -z "$version" ]; then
-            echo "The integration manifest does not define a version." >&2
-            exit 1
-          fi
-
-          if [[ "$version" == *-dev ]]; then
-            echo "Development versions cannot be published as releases: $version" >&2
-            exit 1
-          fi
-
+          test -n "${version}" || { echo "The integration manifest does not define a version." >&2; exit 1; }
+          case "${version}" in *-dev*) echo "Development versions cannot be published: ${version}" >&2; exit 1;; esac
           tag="v${version}"
-
-          if git rev-parse "$tag" >/dev/null 2>&1; then
-            echo "Local tag already exists: $tag" >&2
-            exit 1
-          fi
-
-          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
-            echo "Remote tag already exists: $tag" >&2
-            exit 1
-          fi
-
-          {
-            echo "version=$version"
-            echo "tag=$tag"
-            echo "title=$tag"
-            echo "body=# $tag"
-          } >> "$GITHUB_OUTPUT"
+          git rev-parse "${tag}" >/dev/null 2>&1 && { echo "Local tag already exists: ${tag}" >&2; exit 1; }
+          git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1 && { echo "Remote tag already exists: ${tag}" >&2; exit 1; }
+          awk -v heading="## [${version}] - " 'index($0, heading) == 1 { found = 1; next } found && /^## \[/ { exit } found { print }' CHANGELOG.md > release-notes.md
+          test -s release-notes.md || { echo "CHANGELOG.md has no release notes for ${version}." >&2; exit 1; }
+          { echo "tag=${tag}"; echo "title=${tag}"; } >> "$GITHUB_OUTPUT"
 
       - name: Create tag
         run: |
@@ -75,8 +51,10 @@ jobs:
         with:
           tag_name: ${{ steps.release.outputs.tag }}
           name: ${{ steps.release.outputs.title }}
-          body: ${{ steps.release.outputs.body }}
-          draft: false
-          prerelease: false
+          body_path: release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Remove temporary release notes
+        if: always()
+        run: rm -f release-notes.md

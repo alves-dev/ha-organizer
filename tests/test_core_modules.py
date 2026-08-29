@@ -123,6 +123,11 @@ def test_areas_apply_metadata_and_case_policies():
         "area_picture_required",
         "area_case_policy",
     }
+    compound_name = areas(
+        {"areas": [{"id": "couple", "name": "Quarto Casal"}]},
+        {"case_policy": "capitalized"},
+    )
+    assert not compound_name[0]["findings"]
     lowercase = areas(
         {"areas": [{"id": "office", "name": "Office"}]},
         {"case_policy": "lowercase"},
@@ -163,6 +168,27 @@ def test_zones_detect_geometry_and_policy_findings_but_not_home_duplicates():
         "zone_min_radius",
         "zone_max_radius",
     }
+
+
+def test_zones_apply_name_length_and_case_policies():
+    rows = zones(
+        {"zones": [{"id": "office", "name": "a"}]},
+        {"min_name_length": 2, "case_policy": "capitalized"},
+    )
+    assert {finding["rule_id"] for finding in rows[0]["findings"]} == {
+        "zone_name_length",
+        "zone_case_policy",
+    }
+    compound_name = zones(
+        {"zones": [{"id": "couple", "name": "Quarto Casal"}]},
+        {"case_policy": "capitalized"},
+    )
+    assert not compound_name[0]["findings"]
+    lowercase = zones(
+        {"zones": [{"id": "office", "name": "Office"}]},
+        {"case_policy": "lowercase"},
+    )
+    assert lowercase[0]["findings"][0]["rule_id"] == "zone_case_policy"
 
 
 def test_labels_detect_short_descriptions_and_duplicates():

@@ -296,10 +296,11 @@ def _area_policy_findings(area: dict, area_id: str, settings: dict) -> list[Find
             Finding(
                 "area_picture_required", "warning", "Area has no picture", [area_id]
             )
-        )
+    )
     name = str(area.get("name", ""))
     case_policy = settings.get("case_policy", "any")
-    if case_policy == "capitalized" and area.get("name") != name.capitalize():
+    first_letter = next((char for char in name.lstrip() if char.isalpha()), "")
+    if case_policy == "capitalized" and first_letter and not first_letter.isupper():
         findings.append(
             Finding(
                 "area_case_policy",
@@ -391,10 +392,138 @@ def areas(snapshot: dict, settings=None) -> list[dict]:
     return result
 
 
-def zones(snapshot: dict, settings=None) -> list[dict]:  # NOSONAR
+def _zone_geometry_match(zone, other, settings) -> str | None:
+    if other is zone or None in (other.get("latitude"), other.get("longitude")):
+        return None
+    mean_latitude = radians(
+        (float(zone["latitude"]) + float(other["latitude"])) / 2
+    )
+    lat_delta = (float(zone["latitude"]) - float(other["latitude"])) * 111_320
+    lon_delta = (
+        (float(zone["longitude"]) - float(other["longitude"]))
+        * 111_320
+        * cos(mean_latitude)
+    )
+    distance = (lat_delta * lat_delta + lon_delta * lon_delta) ** 0.5
+    same_radius = float(zone.get("radius") or 0) == float(other.get("radius") or 0)
+    if settings["detect_duplicate_geometry"] and distance == 0 and same_radius:
+        return "duplicate"
+    if settings["detect_overlapping_geometry"] and distance <= float(
+        zone.get("radius") or 0
+    ) + float(other.get("radius") or 0):
+        return "overlap"
+    return None
+
+
+def _zone_geometry_findings(zone, values, settings, zone_id) -> list[Finding]:
+    enabled = (
+        settings["detect_duplicate_geometry"]
+        or settings["detect_overlapping_geometry"]
+    )
+    if not enabled or None in (zone.get("latitude"), zone.get("longitude")):
+        return []
+    if str(zone_id).casefold() == "home":
+        return []
+    duplicates = []
+    overlaps = []
+    for other in values:
+        match = _zone_geometry_match(zone, other, settings)
+        if match == "duplicate":
+            duplicates.append(str(other.get("id", other.get("name"))))
+        elif match == "overlap":
+            overlaps.append(str(other.get("id", other.get("name"))))
+    findings = []
+    if duplicates:
+        findings.append(
+            Finding(
+                "duplicate_zone_geometry",
+                "error",
+                "Zone has the same center and radius as another zone",
+                sorted(duplicates),
+            )
+        )
+    if overlaps:
+        findings.append(
+            Finding(
+                "overlapping_zone_geometry",
+                "warning",
+                "Zone overlaps another zone",
+                sorted(overlaps),
+            )
+        )
+    return findings
+
+
+def _zone_policy_findings(zone, settings, zone_id) -> list[Finding]:
+    findings = []
+    name = str(zone.get("name", ""))
+    if not zone.get("name"):
+        findings.append(
+            Finding("zone_name_missing", "warning", "Zona sem nome", [str(zone_id)])
+        )
+    if settings["min_name_length"] and len(name.strip()) < settings["min_name_length"]:
+        findings.append(
+            Finding(
+                "zone_name_length",
+                "warning",
+                "Zone name is shorter than the configured minimum",
+                [str(zone_id)],
+            )
+        )
+    first_letter = next((char for char in name.lstrip() if char.isalpha()), "")
+    if (
+        settings["case_policy"] == "capitalized"
+        and first_letter
+        and not first_letter.isupper()
+    ):
+        findings.append(
+            Finding(
+                "zone_case_policy",
+                "warning",
+                "Zone name must start with an uppercase letter",
+                [str(zone_id)],
+            )
+        )
+    if settings["case_policy"] == "lowercase" and zone.get("name") != name.lower():
+        findings.append(
+            Finding(
+                "zone_case_policy",
+                "warning",
+                "Zone name must use lowercase only",
+                [str(zone_id)],
+            )
+        )
+    if settings["require_icon"] and not zone.get("icon"):
+        findings.append(
+            Finding("zone_icon_required", "info", "Zona sem ícone", [str(zone_id)])
+        )
+    if settings["min_radius"] and (zone.get("radius") or 0) < settings["min_radius"]:
+        findings.append(
+            Finding(
+                "zone_min_radius",
+                "warning",
+                f"Raio menor que {settings['min_radius']} m",
+                [str(zone_id)],
+            )
+        )
+    if settings["max_radius"] and (zone.get("radius") or 0) > settings["max_radius"]:
+        findings.append(
+            Finding(
+                "zone_max_radius",
+                "warning",
+                f"Raio maior que {settings['max_radius']} m",
+                [str(zone_id)],
+            )
+        )
+    return findings
+
+
+def zones(snapshot: dict, settings=None) -> list[dict]:
     settings = {
         "detect_duplicate_geometry": True,
         "detect_overlapping_geometry": True,
+        "min_name_length": 0,
+        "case_policy": "any",
         "min_radius": 0,
         "max_radius": 0,
         "require_icon": False,
@@ -402,98 +531,17 @@ def zones(snapshot: dict, settings=None) -> list[dict]:  # NOSONAR
     }
     values = snapshot.get("zones", [])
     result = []
-    for z in values:
-        zid = z.get("id") or z.get("zone_id") or z.get("name")
-        findings = []
-        duplicate_geometry = []
-        overlaps = []
-        if (
-            (
-                settings["detect_duplicate_geometry"]
-                or settings["detect_overlapping_geometry"]
-            )
-            and z.get("latitude") is not None
-            and z.get("longitude") is not None
-        ):
-            for other in values:
-                if (
-                    other is z
-                    or other.get("latitude") is None
-                    or other.get("longitude") is None
-                ):
-                    continue
-                mean_latitude = radians(
-                    (float(z["latitude"]) + float(other["latitude"])) / 2
-                )
-                lat_delta = (float(z["latitude"]) - float(other["latitude"])) * 111_320
-                lon_delta = (
-                    (float(z["longitude"]) - float(other["longitude"]))
-                    * 111_320
-                    * cos(mean_latitude)
-                )
-                distance = (lat_delta * lat_delta + lon_delta * lon_delta) ** 0.5
-                other_id = str(other.get("id", other.get("name")))
-                if (
-                    settings["detect_duplicate_geometry"]
-                    and distance == 0
-                    and float(z.get("radius") or 0) == float(other.get("radius") or 0)
-                ):
-                    duplicate_geometry.append(other_id)
-                elif settings["detect_overlapping_geometry"] and distance <= float(
-                    z.get("radius") or 0
-                ) + float(other.get("radius") or 0):
-                    overlaps.append(other_id)
-        if duplicate_geometry and str(zid).casefold() != "home":
-            findings.append(
-                Finding(
-                    "duplicate_zone_geometry",
-                    "error",
-                    "Zone has the same center and radius as another zone",
-                    sorted(duplicate_geometry),
-                )
-            )
-        if overlaps and str(zid).casefold() != "home":
-            findings.append(
-                Finding(
-                    "overlapping_zone_geometry",
-                    "warning",
-                    "Zone overlaps another zone",
-                    sorted(overlaps),
-                )
-            )
-        if not z.get("name"):
-            findings.append(
-                Finding("zone_name_missing", "warning", "Zona sem nome", [str(zid)])
-            )
-        if settings["require_icon"] and not z.get("icon"):
-            findings.append(
-                Finding("zone_icon_required", "info", "Zona sem ícone", [str(zid)])
-            )
-        if settings["min_radius"] and (z.get("radius") or 0) < settings["min_radius"]:
-            findings.append(
-                Finding(
-                    "zone_min_radius",
-                    "warning",
-                    f"Raio menor que {settings['min_radius']} m",
-                    [str(zid)],
-                )
-            )
-        if settings["max_radius"] and (z.get("radius") or 0) > settings["max_radius"]:
-            findings.append(
-                Finding(
-                    "zone_max_radius",
-                    "warning",
-                    f"Raio maior que {settings['max_radius']} m",
-                    [str(zid)],
-                )
-            )
+    for zone in values:
+        zone_id = zone.get("id") or zone.get("zone_id") or zone.get("name")
+        findings = _zone_geometry_findings(zone, values, settings, zone_id)
+        findings.extend(_zone_policy_findings(zone, settings, zone_id))
         result.append(
             _item(
                 "zones",
-                zid,
-                z.get("name") or zid,
+                zone_id,
+                zone.get("name") or zone_id,
                 {
-                    k: z.get(k)
+                    k: zone.get(k)
                     for k in (
                         "name",
                         "latitude",
@@ -504,11 +552,11 @@ def zones(snapshot: dict, settings=None) -> list[dict]:  # NOSONAR
                     )
                 },
                 findings,
-                latitude=z.get("latitude"),
-                longitude=z.get("longitude"),
-                radius=z.get("radius"),
-                passive=z.get("passive"),
-                icon=z.get("icon"),
+                latitude=zone.get("latitude"),
+                longitude=zone.get("longitude"),
+                radius=zone.get("radius"),
+                passive=zone.get("passive"),
+                icon=zone.get("icon"),
             )
         )
     return result
@@ -832,6 +880,24 @@ def overview(result: dict) -> dict:
             "progress": reviewed / len(items) if items else 1,
         }
 
+    area_items = result.get("modules", {}).get("areas", [])
+    area_review = {
+        "areas_total": sum(item.get("area_kind") == "area" for item in area_items),
+        "areas_reviewed": sum(
+            item.get("area_kind") == "area"
+            and item.get("review_status") == "reviewed"
+            for item in area_items
+        ),
+        "unassigned_total": sum(
+            item.get("area_kind") == "unassigned_device" for item in area_items
+        ),
+        "unassigned_ignored": sum(
+            item.get("area_kind") == "unassigned_device"
+            and item.get("review_status") == "ignored"
+            for item in area_items
+        ),
+    }
+
     return {
         "total": total,
         "review_progress": len(current) / total if total else 1,
@@ -839,4 +905,5 @@ def overview(result: dict) -> dict:
         "review": counts("review_status"),
         "stale": [i for i in all_items if i.get("review_status") == "stale"],
         "module_progress": module_progress,
+        "area_review": area_review,
     }

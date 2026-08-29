@@ -29,6 +29,7 @@ MAX_DOMAIN_LENGTH = 64
 MAX_PATTERN_LENGTH = 256
 MAX_REVIEW_KEY_LENGTH = 1024
 MAX_FINGERPRINT_LENGTH = 256
+MAX_BATCH_REVIEWS = 500
 ADMIN_REQUIRED = "Administrator required"
 
 
@@ -42,6 +43,20 @@ def _entity_area(areas_reg, device, entity):
     if device and device.area_id:
         return areas_reg.async_get_area(device.area_id)
     return None
+
+
+def _device_integration(hass, device):
+    entry_ids = sorted(getattr(device, "config_entries", ()) or ())
+    if not getattr(hass, "config_entries", None):
+        return {"integration": "unknown", "integration_name": "Unknown integration"}
+    entries = [hass.config_entries.async_get_entry(entry_id) for entry_id in entry_ids]
+    entry = next((candidate for candidate in entries if candidate), None)
+    if not entry:
+        return {"integration": "unknown", "integration_name": "Unknown integration"}
+    return {
+        "integration": entry.domain,
+        "integration_name": entry.domain.replace("_", " ").title(),
+    }
 
 
 def _validate_categories(categories):
@@ -81,7 +96,7 @@ def _validate_boolean_settings(config):
 
 def _validate_numeric_settings(config):
     fields_by_section = {
-        "zones": ("min_radius", "max_radius"),
+        "zones": ("min_name_length", "min_radius", "max_radius"),
         "labels": ("min_name_length", "min_description_length"),
     }
     for section, fields in fields_by_section.items():
@@ -106,11 +121,32 @@ def _validate_zone_radii(zones):
         )
 
 
+def _validate_zones(zones):
+    if zones["case_policy"] not in ("any", "capitalized", "lowercase"):
+        raise ValueError("zones.case_policy is invalid")
+    _validate_zone_radii(zones)
+
+
 def _validate_labels(labels):
     if not isinstance(labels, dict):
         raise ValueError("labels must be an object")
     if labels["min_name_length"] < 1:
         raise ValueError("labels.min_name_length must be at least 1")
+
+
+def _validate_module_settings(modules):
+    area_settings = modules.get("areas", {}).get("settings", {})
+    if not isinstance(area_settings, dict):
+        raise ValueError("modules.areas.settings must be an object")
+    for field in ("require_floor", "require_aliases", "require_picture"):
+        if field in area_settings and not isinstance(area_settings[field], bool):
+            raise ValueError(f"modules.areas.settings.{field} must be boolean")
+    if area_settings.get("case_policy", "any") not in (
+        "any",
+        "capitalized",
+        "lowercase",
+    ):
+        raise ValueError("modules.areas.settings.case_policy is invalid")
 
 
 def _validate_config_shape(config):  # noqa: PLR0912  # NOSONAR
@@ -141,6 +177,7 @@ def _validate_config_shape(config):  # noqa: PLR0912  # NOSONAR
             raise ValueError(f"modules.{module}.enabled must be boolean")
         if "settings" in options and not isinstance(options["settings"], dict):
             raise ValueError(f"modules.{module}.settings must be an object")
+    _validate_module_settings(modules)
     scopes = config.get("categories", {}).get("scopes")
     if not isinstance(scopes, list) or any(
         scope not in ("automation", "script", "scene") for scope in scopes
@@ -199,7 +236,7 @@ def _merge_config(incoming):
     _validate_categories(config["categories"])
     _validate_boolean_settings(config)
     _validate_numeric_settings(config)
-    _validate_zone_radii(config["zones"])
+    _validate_zones(config["zones"])
     _validate_labels(config["labels"])
     return config
 
@@ -228,8 +265,12 @@ def _snapshot(hass):  # noqa: PLR0912  # NOSONAR
         if device.area_id:
             devices_by_area.setdefault(device.area_id, []).append(device)
     entities_by_area = {}
+    entities_by_device = {}
+
     for entity in entities_reg.entities.values():
         device = devices_reg.async_get(entity.device_id) if entity.device_id else None
+        if device:
+            entities_by_device.setdefault(device.id, []).append(entity.entity_id)
         area = _entity_area(areas_reg, device, entity)
         if area:
             entities_by_area.setdefault(area.id, []).append(entity.entity_id)
@@ -248,13 +289,24 @@ def _snapshot(hass):  # noqa: PLR0912  # NOSONAR
                 "aliases": list(getattr(area, "aliases", ()) or ()),
                 "devices": devices,
                 "device_details": [
-                    {"id": d.id, "name": d.name_by_user or d.name} for d in area_devices
+                    {
+                        "id": d.id,
+                        "name": d.name_by_user or d.name,
+                        **_device_integration(hass, d),
+                        "entity_ids": sorted(entities_by_device.get(d.id, [])),
+                    }
+                    for d in area_devices
                 ],
                 "entities": entities,
             }
         )
     devices_without_area = [
-        {"id": d.id, "name": d.name_by_user or d.name}
+        {
+            "id": d.id,
+            "name": d.name_by_user or d.name,
+            **_device_integration(hass, d),
+            "entity_ids": sorted(entities_by_device.get(d.id, [])),
+        }
         for d in devices_reg.devices.values()
         if not d.area_id
     ]
@@ -466,6 +518,51 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # 
         await store.async_save(data)
         connection.send_result(msg["id"], {"ok": True})
 
+    @websocket_api.websocket_command(
+        {
+            "type": "ha_organizer/reviews/batch_set",
+            "status": str,
+            "items": list,
+        }
+    )
+    @websocket_api.async_response
+    async def reviews_batch_set(hass, connection, msg):
+        if not _admin(connection):
+            return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
+        status = msg["status"]
+        items = msg["items"]
+        if status not in ("reviewed", "ignored", "pending"):
+            return connection.send_error(
+                msg["id"], "invalid_status", "Invalid review status"
+            )
+        if not items or len(items) > MAX_BATCH_REVIEWS:
+            return connection.send_error(
+                msg["id"], "invalid_review", "Review batch size is invalid"
+            )
+        for item in items:
+            if (
+                not isinstance(item, dict)
+                or not isinstance(item.get("item_key"), str)
+                or not isinstance(item.get("fingerprint"), str)
+                or len(item["item_key"]) > MAX_REVIEW_KEY_LENGTH
+                or len(item["fingerprint"]) > MAX_FINGERPRINT_LENGTH
+            ):
+                return connection.send_error(
+                    msg["id"], "invalid_review", "Review identifiers are invalid"
+                )
+        store, data = await _store(hass)
+        for item in items:
+            if status == "pending":
+                data["reviews"].pop(item["item_key"], None)
+            else:
+                data["reviews"][item["item_key"]] = {
+                    "review_status": status,
+                    "reviewed_fingerprint": item["fingerprint"],
+                    "note": None,
+                }
+        await store.async_save(data)
+        connection.send_result(msg["id"], {"ok": True, "count": len(items)})
+
     @websocket_api.websocket_command({"type": "ha_organizer/overview"})
     @websocket_api.async_response
     async def get_overview(hass, connection, msg):
@@ -485,6 +582,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # 
         config_reset,
         do_scan,
         review_set,
+        reviews_batch_set,
         get_overview,
     ):
         websocket_api.async_register_command(hass, command)

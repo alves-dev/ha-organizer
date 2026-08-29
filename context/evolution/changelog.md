@@ -12,6 +12,8 @@
 
 ### Changed
 
+- Recommended organization-flow steps now show a subtle completion check when
+  all auditable items in that module have been reviewed or ignored.
 - Area device lists are grouped by Home Assistant integration while retaining
   the compact device-row presentation. Integration groups use a readable
   integration-domain name and can select all unassigned devices in that group.

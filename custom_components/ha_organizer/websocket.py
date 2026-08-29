@@ -45,6 +45,20 @@ def _entity_area(areas_reg, device, entity):
     return None
 
 
+def _device_integration(hass, device):
+    entry_ids = sorted(getattr(device, "config_entries", ()) or ())
+    if not getattr(hass, "config_entries", None):
+        return {"integration": "unknown", "integration_name": "Unknown integration"}
+    entries = [hass.config_entries.async_get_entry(entry_id) for entry_id in entry_ids]
+    entry = next((candidate for candidate in entries if candidate), None)
+    if not entry:
+        return {"integration": "unknown", "integration_name": "Unknown integration"}
+    return {
+        "integration": entry.domain,
+        "integration_name": entry.domain.replace("_", " ").title(),
+    }
+
+
 def _validate_categories(categories):
     if not isinstance(categories, dict):
         raise ValueError("categories must be an object")
@@ -253,27 +267,6 @@ def _snapshot(hass):  # noqa: PLR0912  # NOSONAR
     entities_by_area = {}
     entities_by_device = {}
 
-    def device_integration(device):
-        entry_ids = sorted(getattr(device, "config_entries", ()) or ())
-        if not getattr(hass, "config_entries", None):
-            return {
-                "integration": "unknown",
-                "integration_name": "Unknown integration",
-            }
-        entries = [
-            hass.config_entries.async_get_entry(entry_id) for entry_id in entry_ids
-        ]
-        entry = next((candidate for candidate in entries if candidate), None)
-        if not entry:
-            return {
-                "integration": "unknown",
-                "integration_name": "Unknown integration",
-            }
-        return {
-            "integration": entry.domain,
-            "integration_name": entry.domain.replace("_", " ").title(),
-        }
-
     for entity in entities_reg.entities.values():
         device = devices_reg.async_get(entity.device_id) if entity.device_id else None
         if device:
@@ -299,7 +292,7 @@ def _snapshot(hass):  # noqa: PLR0912  # NOSONAR
                     {
                         "id": d.id,
                         "name": d.name_by_user or d.name,
-                        **device_integration(d),
+                        **_device_integration(hass, d),
                         "entity_ids": sorted(entities_by_device.get(d.id, [])),
                     }
                     for d in area_devices
@@ -311,7 +304,7 @@ def _snapshot(hass):  # noqa: PLR0912  # NOSONAR
         {
             "id": d.id,
             "name": d.name_by_user or d.name,
-            **device_integration(d),
+            **_device_integration(hass, d),
             "entity_ids": sorted(entities_by_device.get(d.id, [])),
         }
         for d in devices_reg.devices.values()

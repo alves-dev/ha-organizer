@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Refactored zone auditing and Home Assistant snapshot assembly to comply with
+  Ruff complexity limits without changing their output.
 - Reviewed or ignored Zone and Label items now show only the Reopen action;
   Ignore is no longer offered for them.
 - The Areas “Start with uppercase” policy now checks only the first alphabetic

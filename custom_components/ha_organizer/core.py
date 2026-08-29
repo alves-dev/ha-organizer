@@ -392,37 +392,46 @@ def areas(snapshot: dict, settings=None) -> list[dict]:
     return result
 
 
+def _zone_geometry_match(zone, other, settings) -> str | None:
+    if other is zone or None in (other.get("latitude"), other.get("longitude")):
+        return None
+    mean_latitude = radians(
+        (float(zone["latitude"]) + float(other["latitude"])) / 2
+    )
+    lat_delta = (float(zone["latitude"]) - float(other["latitude"])) * 111_320
+    lon_delta = (
+        (float(zone["longitude"]) - float(other["longitude"]))
+        * 111_320
+        * cos(mean_latitude)
+    )
+    distance = (lat_delta * lat_delta + lon_delta * lon_delta) ** 0.5
+    same_radius = float(zone.get("radius") or 0) == float(other.get("radius") or 0)
+    if settings["detect_duplicate_geometry"] and distance == 0 and same_radius:
+        return "duplicate"
+    if settings["detect_overlapping_geometry"] and distance <= float(
+        zone.get("radius") or 0
+    ) + float(other.get("radius") or 0):
+        return "overlap"
+    return None
+
+
 def _zone_geometry_findings(zone, values, settings, zone_id) -> list[Finding]:
-    if not (
+    enabled = (
         settings["detect_duplicate_geometry"]
         or settings["detect_overlapping_geometry"]
-    ) or zone.get("latitude") is None or zone.get("longitude") is None:
+    )
+    if not enabled or None in (zone.get("latitude"), zone.get("longitude")):
+        return []
+    if str(zone_id).casefold() == "home":
         return []
     duplicates = []
     overlaps = []
     for other in values:
-        if other is zone or None in (other.get("latitude"), other.get("longitude")):
-            continue
-        mean_latitude = radians(
-            (float(zone["latitude"]) + float(other["latitude"])) / 2
-        )
-        lat_delta = (float(zone["latitude"]) - float(other["latitude"])) * 111_320
-        lon_delta = (
-            (float(zone["longitude"]) - float(other["longitude"]))
-            * 111_320
-            * cos(mean_latitude)
-        )
-        distance = (lat_delta * lat_delta + lon_delta * lon_delta) ** 0.5
-        other_id = str(other.get("id", other.get("name")))
-        same_radius = float(zone.get("radius") or 0) == float(other.get("radius") or 0)
-        if settings["detect_duplicate_geometry"] and distance == 0 and same_radius:
-            duplicates.append(other_id)
-        elif settings["detect_overlapping_geometry"] and distance <= float(
-            zone.get("radius") or 0
-        ) + float(other.get("radius") or 0):
-            overlaps.append(other_id)
-    if str(zone_id).casefold() == "home":
-        return []
+        match = _zone_geometry_match(zone, other, settings)
+        if match == "duplicate":
+            duplicates.append(str(other.get("id", other.get("name"))))
+        elif match == "overlap":
+            overlaps.append(str(other.get("id", other.get("name"))))
     findings = []
     if duplicates:
         findings.append(

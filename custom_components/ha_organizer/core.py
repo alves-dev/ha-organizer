@@ -296,10 +296,11 @@ def _area_policy_findings(area: dict, area_id: str, settings: dict) -> list[Find
             Finding(
                 "area_picture_required", "warning", "Area has no picture", [area_id]
             )
-        )
+    )
     name = str(area.get("name", ""))
     case_policy = settings.get("case_policy", "any")
-    if case_policy == "capitalized" and area.get("name") != name.capitalize():
+    first_letter = next((char for char in name.lstrip() if char.isalpha()), "")
+    if case_policy == "capitalized" and first_letter and not first_letter.isupper():
         findings.append(
             Finding(
                 "area_case_policy",

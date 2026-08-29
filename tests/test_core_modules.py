@@ -123,6 +123,11 @@ def test_areas_apply_metadata_and_case_policies():
         "area_picture_required",
         "area_case_policy",
     }
+    compound_name = areas(
+        {"areas": [{"id": "couple", "name": "Quarto Casal"}]},
+        {"case_policy": "capitalized"},
+    )
+    assert not compound_name[0]["findings"]
     lowercase = areas(
         {"areas": [{"id": "office", "name": "Office"}]},
         {"case_policy": "lowercase"},

@@ -21,6 +21,8 @@ A shared global normalization section exists in the current default configuratio
 The Settings panel persists each visible module-specific policy in one complete
 configuration update. Area metadata requirements, name capitalization, and
 normalization rules are retained independently from other modules.
+Zone geometry, name-length, and name-capitalization policies are likewise
+retained independently.
 
 ## Related
 

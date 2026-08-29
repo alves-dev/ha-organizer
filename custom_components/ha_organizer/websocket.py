@@ -82,7 +82,7 @@ def _validate_boolean_settings(config):
 
 def _validate_numeric_settings(config):
     fields_by_section = {
-        "zones": ("min_radius", "max_radius"),
+        "zones": ("min_name_length", "min_radius", "max_radius"),
         "labels": ("min_name_length", "min_description_length"),
     }
     for section, fields in fields_by_section.items():
@@ -105,6 +105,12 @@ def _validate_zone_radii(zones):
         raise ValueError(
             "zones.max_radius must be zero or greater than zones.min_radius"
         )
+
+
+def _validate_zones(zones):
+    if zones["case_policy"] not in ("any", "capitalized", "lowercase"):
+        raise ValueError("zones.case_policy is invalid")
+    _validate_zone_radii(zones)
 
 
 def _validate_labels(labels):
@@ -216,7 +222,7 @@ def _merge_config(incoming):
     _validate_categories(config["categories"])
     _validate_boolean_settings(config)
     _validate_numeric_settings(config)
-    _validate_zone_radii(config["zones"])
+    _validate_zones(config["zones"])
     _validate_labels(config["labels"])
     return config
 

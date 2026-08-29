@@ -396,6 +396,8 @@ def zones(snapshot: dict, settings=None) -> list[dict]:  # NOSONAR
     settings = {
         "detect_duplicate_geometry": True,
         "detect_overlapping_geometry": True,
+        "min_name_length": 0,
+        "case_policy": "any",
         "min_radius": 0,
         "max_radius": 0,
         "require_icon": False,
@@ -465,6 +467,42 @@ def zones(snapshot: dict, settings=None) -> list[dict]:  # NOSONAR
         if not z.get("name"):
             findings.append(
                 Finding("zone_name_missing", "warning", "Zona sem nome", [str(zid)])
+            )
+        name = str(z.get("name", ""))
+        if (
+            settings["min_name_length"]
+            and len(name.strip()) < settings["min_name_length"]
+        ):
+            findings.append(
+                Finding(
+                    "zone_name_length",
+                    "warning",
+                    "Zone name is shorter than the configured minimum",
+                    [str(zid)],
+                )
+            )
+        first_letter = next((char for char in name.lstrip() if char.isalpha()), "")
+        if (
+            settings["case_policy"] == "capitalized"
+            and first_letter
+            and not first_letter.isupper()
+        ):
+            findings.append(
+                Finding(
+                    "zone_case_policy",
+                    "warning",
+                    "Zone name must start with an uppercase letter",
+                    [str(zid)],
+                )
+            )
+        if settings["case_policy"] == "lowercase" and z.get("name") != name.lower():
+            findings.append(
+                Finding(
+                    "zone_case_policy",
+                    "warning",
+                    "Zone name must use lowercase only",
+                    [str(zid)],
+                )
             )
         if settings["require_icon"] and not z.get("icon"):
             findings.append(

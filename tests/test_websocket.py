@@ -18,6 +18,8 @@ def test_merge_config_accepts_and_rejects_policy_values():
         {"categories": {"case_policy": "mixed"}},
         {"categories": {"allow_spaces": "yes"}},
         {"zones": {"min_radius": -1}},
+        {"zones": {"min_name_length": -1}},
+        {"zones": {"case_policy": "mixed"}},
         {"zones": {"max_radius": 10, "min_radius": 20}},
         {"labels": {"min_name_length": 0}},
     ):

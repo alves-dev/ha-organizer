@@ -13,6 +13,8 @@ Zones are often used in location-aware automations. A clear inventory helps admi
 - [x] Lists configured zones and their relevant details.
 - [x] Highlights duplicate or overlapping geometry when those checks are enabled.
 - [x] Applies the chosen zone policy to the inventory.
+- [x] Flags zone names that are shorter than the administrator-defined minimum.
+- [x] Applies the configured capitalization policy to zone names.
 - [x] Provides a direct route to manage zones in Home Assistant.
 
 ## Related
@@ -25,4 +27,4 @@ Zones are often used in location-aware automations. A clear inventory helps admi
 ## Status
 
 - **Created**: 2026-08-28 (Phase: Intent)
-- **Status**: Active (already implemented)
+- **Status**: Active (implemented, expanded 2026-08-29)

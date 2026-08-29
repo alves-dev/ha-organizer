@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Reviewed or ignored Zone and Label items now show only the Reopen action;
+  Ignore is no longer offered for them.
 - The Areas “Start with uppercase” policy now checks only the first alphabetic
   character, so compound names such as “Quarto Casal” remain valid.
 - Settings now saves and restores every visible policy field in one update,

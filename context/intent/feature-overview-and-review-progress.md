@@ -14,6 +14,7 @@ Administrators need to understand the scale and state of an organization review 
 - [x] Keeps technical compliance distinct from human review progress.
 - [x] Identifies items whose previous review is no longer current.
 - [x] Shows progress for each enabled audit area.
+- [x] Orders progress by audit area using the recommended organization flow.
 
 ## Related
 

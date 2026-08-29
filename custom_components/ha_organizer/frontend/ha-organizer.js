@@ -8,6 +8,14 @@ const MODULES = [
   ["exposed", "Exposed & Aliases", "mdi:account-voice"],
   ["settings", "Settings", "mdi:cog-outline"],
 ];
+const ORGANIZATION_FLOW_MODULES = [
+  "areas",
+  "zones",
+  "labels",
+  "categories",
+  "entity_ids",
+  "exposed",
+];
 const BUILD_TIME = "__HA_ORGANIZER_BUILD_TIME__";
 const DEV_BUILD_STAMP = BUILD_TIME.startsWith("20");
 
@@ -141,12 +149,14 @@ class HaOrganizer extends HTMLElement {
     const reviewed = Math.round((data.review_progress || 0) * 100);
     const stale = data.review?.stale || 0;
     const areaReview = data.area_review || {};
-    const moduleProgress = Object.entries(data.module_progress || {});
+    const moduleProgress = ORGANIZATION_FLOW_MODULES
+      .filter((id) => data.module_progress?.[id])
+      .map((id) => [id, data.module_progress[id]]);
     const moduleLabels = Object.fromEntries(MODULES.map(([id, label]) => [id, label]));
     const flowProgress = data.module_progress || {};
     this.querySelector("#content").innerHTML = `<div class="page-heading"><div><div class="eyebrow">OVERVIEW</div><h1>Hello, administrator <span><ha-icon icon="mdi:account-voice"></ha-icon></span></h1><p>A quick view of your installation's organization.</p></div><div class="health"><span class="health-dot"></span> Local audit</div></div>
       <section class="hero"><div><div class="eyebrow light">REVIEW PROGRESS</div><div class="hero-number">${reviewed}<small>%</small></div><p>${reviewed === 100 ? "Everything reviewed in the current state." : "Continue where you left off."}</p></div><div class="progress-ring" style="--progress:${reviewed * 3.6}deg"><div>${reviewed}%</div></div></section>
-      <section class="organizer-flow"><div class="section-title"><div><h2>Recommended organization flow</h2><p>Follow this order to make the installation easier to maintain.</p></div></div><div class="flow-steps">${["Areas", "Zones", "Labels", "Categories", "Entity IDs", "Exposed & Aliases"].map((label, index) => { const module = MODULES.find((entry) => entry[1] === label); const progress = flowProgress[module?.[0]]; const complete = progress?.total > 0 && progress.reviewed >= progress.total; return `<button class="flow-step ${complete ? "complete" : ""}" data-module="${module?.[0] || "overview"}"><b>${index + 1}</b><span><ha-icon icon="${module?.[2] || "mdi:circle-outline"}"></ha-icon></span><small>${label}</small>${complete ? `<ha-icon class="flow-complete" icon="mdi:check-circle"></ha-icon>` : ""}</button>${index < 5 ? "<i>→</i>" : ""}`; }).join("")}</div></section>
+      <section class="organizer-flow"><div class="section-title"><div><h2>Recommended organization flow</h2><p>Follow this order to make the installation easier to maintain.</p></div></div><div class="flow-steps">${ORGANIZATION_FLOW_MODULES.map((id, index) => { const module = MODULES.find((entry) => entry[0] === id); const progress = flowProgress[id]; const complete = progress?.total > 0 && progress.reviewed >= progress.total; return `<button class="flow-step ${complete ? "complete" : ""}" data-module="${id}"><b>${index + 1}</b><span><ha-icon icon="${module?.[2] || "mdi:circle-outline"}"></ha-icon></span><small>${module?.[1] || id}</small>${complete ? `<ha-icon class="flow-complete" icon="mdi:check-circle"></ha-icon>` : ""}</button>${index < ORGANIZATION_FLOW_MODULES.length - 1 ? "<i>→</i>" : ""}`; }).join("")}</div></section>
       <section class="area-review-summary"><div><span><ha-icon icon="mdi:home-check-outline"></ha-icon></span><strong>${areaReview.areas_reviewed || 0} / ${areaReview.areas_total || 0}</strong><small>areas reviewed</small></div><div><span><ha-icon icon="mdi:devices"></ha-icon></span><strong>${areaReview.unassigned_ignored || 0} / ${areaReview.unassigned_total || 0}</strong><small>unassigned devices ignored</small></div></section><div class="metric-grid"><article class="metric-card"><div class="metric-icon purple">◈</div><div><strong>${data.total || 0}</strong><span>auditable items</span></div></article><article class="metric-card"><div class="metric-icon green">✓</div><div><strong>${data.compliance?.compliant || 0}</strong><span>compliant</span></div></article><article class="metric-card"><div class="metric-icon orange">!</div><div><strong>${(data.compliance?.attention || 0) + (data.compliance?.non_compliant || 0)}</strong><span>need attention</span></div></article><article class="metric-card"><div class="metric-icon red">↻</div><div><strong>${stale}</strong><span>outdated</span></div></article></div>
       <div class="section-title"><div><h2>Audit summary</h2><p>Compliance and review progress are tracked separately.</p></div></div><div class="summary-grid"><div class="summary-card"><h3>Compliance</h3>${bar("Compliant", data.compliance?.compliant || 0, data.total, "green")}${bar("Attention", data.compliance?.attention || 0, data.total, "orange")}${bar("Non-compliant", data.compliance?.non_compliant || 0, data.total, "red")}</div><div class="summary-card"><h3>Progress</h3>${bar("Reviewed", data.review?.reviewed || 0, data.total, "purple")}${bar("Pending", data.review?.pending || 0, data.total, "gray")}${bar("Ignored", data.review?.ignored || 0, data.total, "orange")}</div></div><div class="section-title module-progress-title"><div><h2>Progress by module</h2><p>Review progress for each audited area.</p></div></div><div class="module-progress-grid">${moduleProgress.map(([id, progress]) => bar(moduleLabels[id] || id, progress.reviewed, progress.total, "purple")).join("")}</div>`;
     this.querySelectorAll(".flow-step").forEach((button) => { button.onclick = () => this.show(button.dataset.module); });

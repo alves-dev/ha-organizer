@@ -14,6 +14,8 @@
 
 ### Changed
 
+- Progress by module now follows the same order as the Recommended organization
+  flow: Areas, Zones, Labels, Categories, Entity IDs, and Exposed & Aliases.
 - Zones now support an administrator-configured minimum name length and the
   same name-capitalization options as Areas.
 - Recommended organization-flow steps now show a subtle completion check when

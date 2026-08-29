@@ -10,6 +10,11 @@
 
 ### Changed
 
+- Area device lists are grouped by Home Assistant integration while retaining
+  the compact device-row presentation. Integration groups use a readable
+  integration-domain name and can select all unassigned devices in that group.
+- Ignored unassigned devices now appear in a separate section with explicit
+  status text and an action to restore an item to the pending review queue.
 - Areas now support recorded review after inspecting their devices. Devices
   without an area can be searched by name, device ID, or entity ID and ignored
   in an administrator-only batch action; Overview shows this review progress.

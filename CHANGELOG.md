@@ -2,6 +2,13 @@
 
 All notable changes to HA Organizer are documented in this file.
 
+## [2026.10.1] - 2026-10-22
+
+### Fixed
+
+- Fixed navigation sidebar overflow on desktop browsers and the iOS companion
+  app.
+
 ## [2026.10.0] - 2026-10-22
 
 ### Fixed

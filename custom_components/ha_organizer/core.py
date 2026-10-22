@@ -373,13 +373,13 @@ def areas(snapshot: dict, settings=None) -> list[dict]:
             _item(
                 "areas",
                 did,
-                f"Dispositivo sem área: {device.get('name', did)}",
+                f"Device without area: {device.get('name', did)}",
                 device,
                 [
                     Finding(
                         "device_without_area",
                         "attention",
-                        "Dispositivo sem área",
+                        "Device without area",
                         [did],
                     )
                 ],

@@ -14,11 +14,14 @@ Consistent categories make Home Assistant automations, scripts, and scenes easie
 - [x] Identifies inconsistent or missing category presence across selected scopes.
 - [x] Highlights names and icons that need attention according to the selected policy.
 - [x] Lets administrators record their review of an audit item.
+- [x] Optionally creates a Home Assistant Repair for each category that is not
+  compliant, including the audit details needed for review.
 
 ## Related
 
 - [Project Intent](project-intent.md)
 - [Decision: Module-specific Audit Policies](../decisions/003-module-specific-audit-policies.md)
+- [Decision: Optional Home Assistant Repair Issues](../decisions/008-home-assistant-repair-issues.md)
 - [Pattern: Canonical Findings and Stale Reviews](../knowledge/patterns/canonical-findings-and-stale-reviews.md)
 
 ## Status

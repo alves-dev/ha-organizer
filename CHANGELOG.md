@@ -18,6 +18,18 @@ All notable changes to HA Organizer are documented in this file.
 - Improved contrast for percentage values in Overview progress bars when using
   a dark Home Assistant theme.
 
+### Added
+
+- Added optional, per-module Home Assistant Repairs for non-compliant or
+  attention items in Categories, Areas, Zones, and Labels.
+- Repairs now use the integration translations and show the module/item in the
+  title, findings and a direct link to HA Organizer. Areas create one Repair
+  per actual area; unassigned-device findings remain in the Areas audit.
+- Added a separate Areas setting for Repairs of pending devices without an
+  area; ignored devices are excluded.
+- Standardized the generated unassigned-device finding text in English so its
+  Repair title remains localized consistently with the rest of the HA UI.
+
 ## [2026.8.0] - 2026-08-25
 
 ### Added

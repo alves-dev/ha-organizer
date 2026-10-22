@@ -17,11 +17,16 @@ Clear area organization improves how an installation reflects its physical or lo
 - [x] Retains each configured area-audit policy, including the required name
   capitalization, after Settings is reopened.
 - [x] Explains the effect of every area-audit setting in the Settings interface.
+- [x] Optionally creates a Home Assistant Repair for each area that is not
+  compliant, including the audit details needed for review.
+- [x] Optionally creates a separate Home Assistant Repair for each pending
+  device without an area; ignored devices do not create Repairs.
 
 ## Related
 
 - [Project Intent](project-intent.md)
 - [Decision: Read-only Native Resource Navigation](../decisions/004-read-only-native-resource-navigation.md)
+- [Decision: Optional Home Assistant Repair Issues](../decisions/008-home-assistant-repair-issues.md)
 - [Pattern: Registry Snapshot Boundary](../knowledge/patterns/registry-snapshot-boundary.md)
 
 ## Status

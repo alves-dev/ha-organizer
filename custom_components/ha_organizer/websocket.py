@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from hashlib import sha256
 import math
 import re
 
@@ -16,11 +17,12 @@ from homeassistant.helpers import category_registry as cr
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import floor_registry as fr
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers import label_registry as lr
 from homeassistant.helpers.storage import Store
 import voluptuous as vol
 
-from .const import DEFAULT_CONFIG, DOMAIN, MODULES, VERSION
+from .const import DEFAULT_CONFIG, DOMAIN, MODULES, REPAIR_MODULES, VERSION
 from .core import overview, scan
 
 MAX_CATEGORY_NAME_LENGTH = 10000
@@ -148,7 +150,12 @@ def _validate_module_settings(modules):
     area_settings = modules.get("areas", {}).get("settings", {})
     if not isinstance(area_settings, dict):
         raise ValueError("modules.areas.settings must be an object")
-    for field in ("require_floor", "require_aliases", "require_picture"):
+    for field in (
+        "require_floor",
+        "require_aliases",
+        "require_picture",
+        "create_unassigned_device_repairs",
+    ):
         if field in area_settings and not isinstance(area_settings[field], bool):
             raise ValueError(f"modules.areas.settings.{field} must be boolean")
     if area_settings.get("case_policy", "any") not in (
@@ -157,6 +164,14 @@ def _validate_module_settings(modules):
         "lowercase",
     ):
         raise ValueError("modules.areas.settings.case_policy is invalid")
+    for module in REPAIR_MODULES:
+        settings = modules.get(module, {}).get("settings", {})
+        if "create_repairs" in settings and not isinstance(
+            settings["create_repairs"], bool
+        ):
+            raise ValueError(
+                f"modules.{module}.settings.create_repairs must be boolean"
+            )
 
 
 def _validate_config_shape(config):  # noqa: PLR0912  # NOSONAR
@@ -235,7 +250,19 @@ def _merge_config(incoming):
             raise ValueError(f"{section} must be an object")
     config = deepcopy(DEFAULT_CONFIG)
     config.update(incoming)
-    config["modules"] = {**DEFAULT_CONFIG["modules"], **incoming.get("modules", {})}
+    config["modules"] = {
+        module: {
+            **DEFAULT_CONFIG["modules"].get(module, {}),
+            **incoming.get("modules", {}).get(module, {}),
+            "settings": {
+                **DEFAULT_CONFIG["modules"].get(module, {}).get("settings", {}),
+                **incoming.get("modules", {})
+                .get(module, {})
+                .get("settings", {}),
+            },
+        }
+        for module in MODULES
+    }
     config["categories"] = {
         **DEFAULT_CONFIG["categories"],
         **incoming.get("categories", {}),
@@ -257,13 +284,169 @@ async def _store(hass):
     if data:
         config = data.get("config", {})
         data["config"] = _merge_config(config)
+        data.setdefault("repair_issues", {})
         return store, data
     return store, {
         "schema_version": VERSION,
         "config": DEFAULT_CONFIG.copy(),
         "reviews": {},
         "last_scan": None,
+        "repair_issues": {},
     }
+
+
+def _repair_issue_id(item):
+    digest = sha256(item["item_key"].encode()).hexdigest()[:32]
+    return f"audit_{digest}"
+
+
+def _repair_details(item):
+    details = []
+    for finding in item.get("findings", []):
+        refs = ", ".join(str(ref) for ref in finding.get("resource_refs", []))
+        message = finding.get("message", "Audit finding")
+        if finding.get("rule_id") == "device_without_area":
+            message = "Device without area"
+        detail = f"- {message}"
+        if finding.get("rule_id"):
+            detail += f" (rule: {finding['rule_id']})"
+        if refs:
+            detail += f"; resources: {refs}"
+        details.append(detail)
+    return "\n".join(details) or "- This item requires review."
+
+
+def _repair_item_title(item):
+    title = str(item.get("title", item.get("id", "")))
+    if item.get("area_kind") != "unassigned_device":
+        return title
+    devices = item.get("devices") or item.get("device_details") or []
+    if devices and isinstance(devices[0], dict) and devices[0].get("name"):
+        return str(devices[0]["name"])
+    return re.sub(r"^(?:Dispositivo sem área|Device without area):\s*", "", title)
+
+
+def _repair_enabled(config, module, setting="create_repairs"):
+    return bool(
+        config.get("modules", {})
+        .get(module, {})
+        .get("settings", {})
+        .get(setting, False)
+    )
+
+
+def _sync_repairs(hass, data, result):
+    module_labels = {
+        "categories": "Categories",
+        "areas": "Areas",
+        "zones": "Zones",
+        "labels": "Labels",
+    }
+    previous = data.get("repair_issues", {})
+    if not isinstance(previous, dict):
+        previous = {}
+    current = {}
+    config = data.get("config", DEFAULT_CONFIG)
+    modules = result.get("modules", {}) if isinstance(result, dict) else {}
+    for module in REPAIR_MODULES:
+        previous_ids = previous.get(module, [])
+        if isinstance(previous_ids, dict):
+            previous_ids = previous_ids.keys()
+        previous_ids = set(previous_ids)
+        active_ids = set()
+        if _repair_enabled(config, module):
+            for item in modules.get(module, []):
+                # The Areas audit also reports devices without an area as
+                # separate findings. Repairs are intentionally one-per-area;
+                # those device findings remain visible in the Areas module.
+                if module == "areas" and item.get("area_kind") != "area":
+                    continue
+                if item.get("compliance_status") == "compliant":
+                    continue
+                issue_id = _repair_issue_id(item)
+                active_ids.add(issue_id)
+                status = item.get("compliance_status", "attention")
+                severity = (
+                    ir.IssueSeverity.ERROR
+                    if status == "non_compliant"
+                    else ir.IssueSeverity.WARNING
+                )
+                ir.async_create_issue(
+                    hass,
+                    DOMAIN,
+                    issue_id,
+                    data={
+                        "item_key": str(item.get("item_key", "")),
+                        "fingerprint": str(item.get("fingerprint", "")),
+                    },
+                    is_fixable=False,
+                    is_persistent=True,
+                    severity=severity,
+                    translation_key="audit_item",
+                    translation_placeholders={
+                        "module": module_labels[module],
+                        "item": _repair_item_title(item),
+                        "item_id": str(item.get("id", "")),
+                        "status": status.replace("_", " ").title(),
+                        "details": _repair_details(item),
+                    },
+                )
+        for issue_id in previous_ids - active_ids:
+            ir.async_delete_issue(hass, DOMAIN, issue_id)
+        current[module] = sorted(active_ids)
+    unassigned_previous = previous.get("areas_unassigned", [])
+    if isinstance(unassigned_previous, dict):
+        unassigned_previous = unassigned_previous.keys()
+    unassigned_previous = set(unassigned_previous)
+    unassigned_active = set()
+    if _repair_enabled(config, "areas", "create_unassigned_device_repairs"):
+        for item in modules.get("areas", []):
+            if (
+                item.get("area_kind") != "unassigned_device"
+                or item.get("review_status") != "pending"
+            ):
+                continue
+            issue_id = _repair_issue_id(item)
+            unassigned_active.add(issue_id)
+            ir.async_create_issue(
+                hass,
+                DOMAIN,
+                issue_id,
+                data={
+                    "item_key": str(item.get("item_key", "")),
+                    "fingerprint": str(item.get("fingerprint", "")),
+                },
+                is_fixable=False,
+                is_persistent=True,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key="audit_item",
+                translation_placeholders={
+                    "module": "Devices without area",
+                    "item": _repair_item_title(item),
+                    "item_id": str(item.get("id", "")),
+                    "status": "Pending",
+                    "details": _repair_details(item),
+                },
+            )
+    for issue_id in unassigned_previous - unassigned_active:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+    current["areas_unassigned"] = sorted(unassigned_active)
+    data["repair_issues"] = current
+
+
+async def async_initialize_repairs(hass):
+    store, data = await _store(hass)
+    _sync_repairs(hass, data, data.get("last_scan") or {"modules": {}})
+    await store.async_save(data)
+
+
+async def _scan_and_sync_repairs(hass, data):
+    result = scan(
+        _snapshot(hass), data.get("config", DEFAULT_CONFIG), data.get("reviews", {})
+    )
+    data["last_scan"] = result
+    _sync_repairs(hass, data, result)
+    return result
 
 
 def _snapshot(hass):  # noqa: PLR0912  # NOSONAR
@@ -452,6 +635,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # 
             data["config"] = _merge_config(incoming)
         except ValueError as error:
             return connection.send_error(msg["id"], "invalid_config", str(error))
+        await _scan_and_sync_repairs(hass, data)
         await store.async_save(data)
         connection.send_result(msg["id"], data["config"])
 
@@ -473,7 +657,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # 
             return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
         store, data = await _store(hass)
         data["config"] = deepcopy(DEFAULT_CONFIG)
-        data["last_scan"] = None
+        await _scan_and_sync_repairs(hass, data)
         await store.async_save(data)
         connection.send_result(msg["id"], data["config"])
 
@@ -483,10 +667,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # 
         if not _admin(connection):
             return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
         store, data = await _store(hass)
-        result = scan(
-            _snapshot(hass), data.get("config", DEFAULT_CONFIG), data.get("reviews", {})
-        )
-        data["last_scan"] = result
+        result = await _scan_and_sync_repairs(hass, data)
         await store.async_save(data)
         connection.send_result(msg["id"], result)
 

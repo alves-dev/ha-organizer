@@ -22,7 +22,8 @@ The Settings panel persists each visible module-specific policy in one complete
 configuration update. Area metadata requirements, name capitalization, and
 normalization rules are retained independently from other modules.
 Zone geometry, name-length, and name-capitalization policies are likewise
-retained independently.
+retained independently. Repair creation is also configured independently for
+Categories, Areas, Zones, and Labels, and is disabled by default.
 
 ## Related
 

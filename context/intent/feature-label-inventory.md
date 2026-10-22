@@ -14,11 +14,14 @@ Well-organized labels make it easier for administrators to classify and locate r
 - [x] Identifies duplicates and selected policy violations.
 - [x] Supports recording review progress.
 - [x] Provides a direct route to manage labels in Home Assistant.
+- [x] Optionally creates a Home Assistant Repair for each label that is not
+  compliant, including the audit details needed for review.
 
 ## Related
 
 - [Project Intent](project-intent.md)
 - [Decision: Module-specific Audit Policies](../decisions/003-module-specific-audit-policies.md)
+- [Decision: Optional Home Assistant Repair Issues](../decisions/008-home-assistant-repair-issues.md)
 - [Pattern: Registry Snapshot Boundary](../knowledge/patterns/registry-snapshot-boundary.md)
 
 ## Status

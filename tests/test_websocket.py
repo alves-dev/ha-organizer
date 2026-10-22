@@ -22,6 +22,14 @@ def test_merge_config_accepts_and_rejects_policy_values():
         {"zones": {"case_policy": "mixed"}},
         {"zones": {"max_radius": 10, "min_radius": 20}},
         {"labels": {"min_name_length": 0}},
+        {"modules": {"areas": {"settings": {"create_repairs": "yes"}}}},
+        {
+            "modules": {
+                "areas": {
+                    "settings": {"create_unassigned_device_repairs": "yes"}
+                }
+            }
+        },
     ):
         with pytest.raises(ValueError):
             websocket._merge_config(invalid)
@@ -68,6 +76,7 @@ async def test_websocket_commands_handle_admin_workflow(monkeypatch):
         lambda hass: {"categories": {}, "areas": [], "zones": [], "labels": []},
     )
     monkeypatch.setattr(websocket, "scan", lambda *args: {"modules": {}})
+    monkeypatch.setattr(websocket, "_sync_repairs", lambda *args: None)
     hass = SimpleNamespace()
     websocket.async_register_websocket_commands(hass)
     handlers = {command.__name__: command.__wrapped__ for command in commands}
@@ -326,3 +335,149 @@ def test_snapshot_collects_registry_data_and_exposure(monkeypatch):
     assert websocket._device_integration(SimpleNamespace(), unassigned_device)[
         "integration"
     ] == "unknown"
+
+
+def test_sync_repairs_creates_and_removes_non_compliant_items(monkeypatch):
+    created = []
+    deleted = []
+    monkeypatch.setattr(
+        websocket.ir,
+        "async_create_issue",
+        lambda *args, **kwargs: created.append((args, kwargs)),
+    )
+    monkeypatch.setattr(
+        websocket.ir,
+        "async_delete_issue",
+        lambda *args, **kwargs: deleted.append((args, kwargs)),
+    )
+    data = {
+        "config": websocket._merge_config(
+            {"modules": {"areas": {"settings": {"create_repairs": True}}}}
+        ),
+        "repair_issues": {},
+    }
+    item = {
+        "item_key": "areas:office",
+        "title": "Office",
+        "compliance_status": "attention",
+        "fingerprint": "sha256:first",
+        "findings": [
+            {
+                "rule_id": "area_floor_required",
+                "message": "Area has no floor",
+                "resource_refs": ["office"],
+            }
+        ],
+    }
+
+    websocket._sync_repairs(SimpleNamespace(), data, {"modules": {"areas": [item]}})
+
+    assert len(created) == 1
+    assert created[0][1]["translation_key"] == "audit_item"
+    assert data["repair_issues"]["areas"]
+
+    websocket._sync_repairs(
+        SimpleNamespace(), data, {"modules": {"areas": [{**item, "compliance_status": "compliant"}]}}
+    )
+
+    assert deleted
+    assert data["repair_issues"]["areas"] == []
+
+
+def test_sync_repairs_creates_only_one_issue_per_area(monkeypatch):
+    created = []
+    monkeypatch.setattr(
+        websocket.ir,
+        "async_create_issue",
+        lambda *args, **kwargs: created.append((args, kwargs)),
+    )
+    monkeypatch.setattr(websocket.ir, "async_delete_issue", lambda *args: None)
+    data = {
+        "config": {
+            "modules": {"areas": {"settings": {"create_repairs": True}}}
+        },
+        "repair_issues": {},
+    }
+    area = {
+        "item_key": "areas:office",
+        "id": "office",
+        "title": "Office",
+        "area_kind": "area",
+        "compliance_status": "attention",
+        "findings": [],
+    }
+    unassigned_device = {
+        "item_key": "areas:device:orphan",
+        "id": "orphan",
+        "title": "Orphan device",
+        "area_kind": "unassigned_device",
+        "compliance_status": "attention",
+        "findings": [],
+    }
+
+    websocket._sync_repairs(
+        SimpleNamespace(),
+        data,
+        {"modules": {"areas": [area, unassigned_device]}},
+    )
+
+    assert len(created) == 1
+    assert data["repair_issues"]["areas"]
+
+
+def test_sync_repairs_creates_pending_unassigned_device_issues_only(monkeypatch):
+    created = []
+    deleted = []
+    monkeypatch.setattr(
+        websocket.ir,
+        "async_create_issue",
+        lambda *args, **kwargs: created.append((args, kwargs)),
+    )
+    monkeypatch.setattr(
+        websocket.ir,
+        "async_delete_issue",
+        lambda *args, **kwargs: deleted.append((args, kwargs)),
+    )
+    data = {
+        "config": websocket._merge_config(
+            {
+                "modules": {
+                    "areas": {
+                        "settings": {
+                            "create_unassigned_device_repairs": True
+                        }
+                    }
+                }
+            }
+        ),
+        "repair_issues": {},
+    }
+    pending = {
+        "item_key": "areas:device:pending",
+        "id": "device:pending",
+        "title": "Device without area: Pending",
+        "area_kind": "unassigned_device",
+        "review_status": "pending",
+        "compliance_status": "attention",
+        "findings": [],
+    }
+    ignored = {**pending, "item_key": "areas:device:ignored", "review_status": "ignored"}
+
+    websocket._sync_repairs(
+        SimpleNamespace(),
+        data,
+        {"modules": {"areas": [pending, ignored]}},
+    )
+
+    assert len(created) == 1
+    assert created[0][1]["translation_placeholders"]["module"] == "Devices without area"
+    assert data["repair_issues"]["areas_unassigned"]
+
+    websocket._sync_repairs(
+        SimpleNamespace(),
+        data,
+        {"modules": {"areas": [{**pending, "review_status": "ignored"}]}}
+    )
+
+    assert deleted
+    assert data["repair_issues"]["areas_unassigned"] == []

@@ -16,12 +16,15 @@ Zones are often used in location-aware automations. A clear inventory helps admi
 - [x] Flags zone names that are shorter than the administrator-defined minimum.
 - [x] Applies the configured capitalization policy to zone names.
 - [x] Provides a direct route to manage zones in Home Assistant.
+- [x] Optionally creates a Home Assistant Repair for each zone that is not
+  compliant, including the audit details needed for review.
 
 ## Related
 
 - [Project Intent](project-intent.md)
 - [Decision: Module-specific Audit Policies](../decisions/003-module-specific-audit-policies.md)
 - [Decision: Read-only Native Resource Navigation](../decisions/004-read-only-native-resource-navigation.md)
+- [Decision: Optional Home Assistant Repair Issues](../decisions/008-home-assistant-repair-issues.md)
 - [Pattern: Canonical Findings and Stale Reviews](../knowledge/patterns/canonical-findings-and-stale-reviews.md)
 
 ## Status

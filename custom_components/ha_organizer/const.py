@@ -2,7 +2,25 @@ DOMAIN = "ha_organizer"
 NAME = "HA Organizer"
 VERSION = 1
 MODULES = ("categories", "areas", "zones", "labels", "entity_ids", "exposed")
-DEFAULT_MODULES = {module: {"enabled": True} for module in MODULES}
+REPAIR_MODULES = ("categories", "areas", "zones", "labels")
+DEFAULT_MODULES = {
+    module: {
+        "enabled": True,
+        "settings": (
+            {
+                "create_repairs": False,
+                **(
+                    {"create_unassigned_device_repairs": False}
+                    if module == "areas"
+                    else {}
+                ),
+            }
+            if module in REPAIR_MODULES
+            else {}
+        ),
+    }
+    for module in MODULES
+}
 DEFAULT_CONFIG = {
     "schema_version": VERSION,
     "modules": DEFAULT_MODULES,

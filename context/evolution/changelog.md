@@ -2,6 +2,9 @@
 
 ## 2026-10-22
 
+- Updated the Organizer panel icon endpoint to serve the current blue branding
+  asset and bumped the frontend cache-busting version.
+
 - Fixed the panel navigation sidebar overflow: the collapse control now stays
   inside the sidebar and navigation labels cannot widen it, preventing
   horizontal scrolling in desktop browsers and the iOS companion app.
@@ -18,6 +21,12 @@
   app.
 - Fixed frontend localization from rewriting dynamic Home Assistant label names
   and descriptions, such as changing “Simon” to “Yeson”.
+- Hid the read-only version text from the mobile navigation rail.
+
+### Changed
+
+- Moved the desktop sidebar re-open control below the brand icon and added a
+  mobile Home Assistant navigation button that does not rely on edge swipes.
 
 ## [2026.10.0] - 2026-10-22
 

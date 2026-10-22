@@ -18,6 +18,19 @@ def test_sidebar_toggle_stays_within_sidebar_bounds():
     assert ".sidebar-toggle{right:8px}" in source
 
 
+def test_collapsed_and_mobile_navigation_controls_have_separate_roles():
+    source = FRONTEND.read_text(encoding="utf-8")
+
+    assert 'id="sidebar-expand"' in source
+    assert ".sidebar-collapsed .sidebar-expand{display:grid" in source
+    assert "margin:0 0 10px" in source
+    assert 'id="mobile-menu-button"' in source
+    assert 'class="sidebar-read-only">Read-only</span>' in source
+    assert ".sidebar-footer>.sidebar-read-only" in source
+    assert 'new Event("hass-toggle-menu"' in source
+    assert ".sidebar-toggle,.sidebar-expand{display:none!important}" in source
+
+
 def test_dynamic_label_values_are_excluded_from_localization():
     source = FRONTEND.read_text(encoding="utf-8")
 

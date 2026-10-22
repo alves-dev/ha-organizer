@@ -11,7 +11,7 @@ FRONTEND_VERSION = "2026.10.1"
 
 async def async_register_panel(hass: HomeAssistant):
     path = str(Path(__file__).parent / "frontend" / "ha-organizer.js")
-    icon_path = str(Path(__file__).parent / "icon.png")
+    icon_path = str(Path(__file__).parent / "brand" / "icon.png")
     await hass.http.async_register_static_paths(
         [
             # Change the resource URL whenever the installed file changes so

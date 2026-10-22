@@ -10,6 +10,14 @@ All notable changes to HA Organizer are documented in this file.
   app.
 - Fixed frontend localization from rewriting dynamic Home Assistant label names
   and descriptions, such as changing “Simon” to “Yeson”.
+- Hid the read-only version text from the mobile navigation rail.
+- Updated the Organizer panel to serve the current blue branding icon instead
+  of the legacy purple asset.
+
+### Changed
+
+- Moved the desktop sidebar re-open control below the brand icon and added a
+  mobile Home Assistant navigation button that does not rely on edge swipes.
 
 ## [2026.10.0] - 2026-10-22
 

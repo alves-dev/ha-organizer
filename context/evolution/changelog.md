@@ -2,6 +2,8 @@
 
 ## 2026-10-22
 
+- Panel cache-busting now uses the fixed integration version instead of
+  performing synchronous filesystem metadata access during setup.
 - Confirmed `alves-dev/ha-organizer` in the official HACS default integration
   catalog and updated the README installation guidance and HACS badge.
 

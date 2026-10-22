@@ -6,6 +6,8 @@ from homeassistant.components import panel_custom
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant
 
+FRONTEND_VERSION = "2026.10.0"
+
 
 async def async_register_panel(hass: HomeAssistant):
     path = str(Path(__file__).parent / "frontend" / "ha-organizer.js")
@@ -24,7 +26,7 @@ async def async_register_panel(hass: HomeAssistant):
         webcomponent_name="ha-organizer",
         sidebar_title="HA Organizer",
         sidebar_icon="mdi:format-list-checks",
-        module_url=f"/ha_organizer/ha-organizer.js?v={Path(path).stat().st_mtime_ns}",
+        module_url=f"/ha_organizer/ha-organizer.js?v={FRONTEND_VERSION}",
         embed_iframe=False,
         require_admin=True,
     )

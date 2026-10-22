@@ -27,7 +27,7 @@ Before starting any work, load the relevant Context Mesh files in addition to th
 - Lint: `uv run ruff check custom_components/ha_organizer tests`
 - Coverage: `uv run pytest --cov=custom_components/ha_organizer --cov-report=term --cov-report=xml`
 
-Do not run test, lint, or validation commands automatically during beta exploratory work unless the user explicitly asks.
+After any code change, run the appropriate test suite and lint checks automatically.
 
 ### Local Home Assistant Workflow
 
@@ -65,7 +65,7 @@ root/
 
 ## Fluxo de trabalho durante a versão beta
 
-- Durante a fase de testes exploratórios da versão beta, não executar automaticamente a suíte de testes, testes unitários, lint ou validações equivalentes, salvo solicitação explícita do usuário.
+- Após qualquer alteração de código, executar automaticamente a suíte de testes e as verificações de lint apropriadas, inclusive durante a fase beta.
 - Consultar sempre o arquivo `TODO.md` na raiz antes de iniciar uma nova tarefa. Os itens desse arquivo fazem parte do escopo prioritário de ajustes.
 - Para investigar falhas encontradas durante os testes locais do usuário, consultar o log do Home Assistant em:
   `/home/alves-dev/projects/others/core/config/home-assistant.log`

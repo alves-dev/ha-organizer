@@ -335,6 +335,81 @@ def _repair_enabled(config, module, setting="create_repairs"):
     )
 
 
+def _repair_previous_ids(previous, group):
+    issue_ids = previous.get(group, [])
+    if isinstance(issue_ids, dict):
+        issue_ids = issue_ids.keys()
+    return set(issue_ids)
+
+
+def _create_repair_issue(hass, item, module_label, status_label=None):
+    status = item.get("compliance_status", "attention")
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        _repair_issue_id(item),
+        data={
+            "item_key": str(item.get("item_key", "")),
+            "fingerprint": str(item.get("fingerprint", "")),
+        },
+        is_fixable=False,
+        is_persistent=True,
+        severity=(
+            ir.IssueSeverity.ERROR
+            if status == "non_compliant"
+            else ir.IssueSeverity.WARNING
+        ),
+        translation_key="audit_item",
+        translation_placeholders={
+            "module": module_label,
+            "item": _repair_item_title(item),
+            "item_id": str(item.get("id", "")),
+            "status": status_label or status.replace("_", " ").title(),
+            "details": _repair_details(item),
+        },
+    )
+
+
+def _sync_repair_group(
+    hass,
+    config,
+    modules,
+    previous,
+    *,
+    group,
+    module,
+    module_label,
+    setting="create_repairs",
+    item_filter=None,
+    status_label=None,
+):
+    previous_ids = _repair_previous_ids(previous, group)
+    active_ids = set()
+    if _repair_enabled(config, module, setting):
+        for item in modules.get(module, []):
+            if item_filter is not None and not item_filter(item):
+                continue
+            if item.get("compliance_status") == "compliant":
+                continue
+            issue_id = _repair_issue_id(item)
+            active_ids.add(issue_id)
+            _create_repair_issue(hass, item, module_label, status_label)
+    for issue_id in previous_ids - active_ids:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+    return sorted(active_ids)
+
+
+def _is_area_item(item):
+    return item.get("area_kind") == "area"
+
+
+def _is_pending_unassigned_device(item):
+    return (
+        item.get("area_kind") == "unassigned_device"
+        and item.get("review_status") == "pending"
+    )
+
+
 def _sync_repairs(hass, data, result):
     module_labels = {
         "categories": "Categories",
@@ -349,88 +424,28 @@ def _sync_repairs(hass, data, result):
     config = data.get("config", DEFAULT_CONFIG)
     modules = result.get("modules", {}) if isinstance(result, dict) else {}
     for module in REPAIR_MODULES:
-        previous_ids = previous.get(module, [])
-        if isinstance(previous_ids, dict):
-            previous_ids = previous_ids.keys()
-        previous_ids = set(previous_ids)
-        active_ids = set()
-        if _repair_enabled(config, module):
-            for item in modules.get(module, []):
-                # The Areas audit also reports devices without an area as
-                # separate findings. Repairs are intentionally one-per-area;
-                # those device findings remain visible in the Areas module.
-                if module == "areas" and item.get("area_kind") != "area":
-                    continue
-                if item.get("compliance_status") == "compliant":
-                    continue
-                issue_id = _repair_issue_id(item)
-                active_ids.add(issue_id)
-                status = item.get("compliance_status", "attention")
-                severity = (
-                    ir.IssueSeverity.ERROR
-                    if status == "non_compliant"
-                    else ir.IssueSeverity.WARNING
-                )
-                ir.async_create_issue(
-                    hass,
-                    DOMAIN,
-                    issue_id,
-                    data={
-                        "item_key": str(item.get("item_key", "")),
-                        "fingerprint": str(item.get("fingerprint", "")),
-                    },
-                    is_fixable=False,
-                    is_persistent=True,
-                    severity=severity,
-                    translation_key="audit_item",
-                    translation_placeholders={
-                        "module": module_labels[module],
-                        "item": _repair_item_title(item),
-                        "item_id": str(item.get("id", "")),
-                        "status": status.replace("_", " ").title(),
-                        "details": _repair_details(item),
-                    },
-                )
-        for issue_id in previous_ids - active_ids:
-            ir.async_delete_issue(hass, DOMAIN, issue_id)
-        current[module] = sorted(active_ids)
-    unassigned_previous = previous.get("areas_unassigned", [])
-    if isinstance(unassigned_previous, dict):
-        unassigned_previous = unassigned_previous.keys()
-    unassigned_previous = set(unassigned_previous)
-    unassigned_active = set()
-    if _repair_enabled(config, "areas", "create_unassigned_device_repairs"):
-        for item in modules.get("areas", []):
-            if (
-                item.get("area_kind") != "unassigned_device"
-                or item.get("review_status") != "pending"
-            ):
-                continue
-            issue_id = _repair_issue_id(item)
-            unassigned_active.add(issue_id)
-            ir.async_create_issue(
-                hass,
-                DOMAIN,
-                issue_id,
-                data={
-                    "item_key": str(item.get("item_key", "")),
-                    "fingerprint": str(item.get("fingerprint", "")),
-                },
-                is_fixable=False,
-                is_persistent=True,
-                severity=ir.IssueSeverity.WARNING,
-                translation_key="audit_item",
-                translation_placeholders={
-                    "module": "Devices without area",
-                    "item": _repair_item_title(item),
-                    "item_id": str(item.get("id", "")),
-                    "status": "Pending",
-                    "details": _repair_details(item),
-                },
-            )
-    for issue_id in unassigned_previous - unassigned_active:
-        ir.async_delete_issue(hass, DOMAIN, issue_id)
-    current["areas_unassigned"] = sorted(unassigned_active)
+        current[module] = _sync_repair_group(
+            hass,
+            config,
+            modules,
+            previous,
+            group=module,
+            module=module,
+            module_label=module_labels[module],
+            item_filter=_is_area_item if module == "areas" else None,
+        )
+    current["areas_unassigned"] = _sync_repair_group(
+        hass,
+        config,
+        modules,
+        previous,
+        group="areas_unassigned",
+        module="areas",
+        module_label="Devices without area",
+        setting="create_unassigned_device_repairs",
+        item_filter=_is_pending_unassigned_device,
+        status_label="Pending",
+    )
     data["repair_issues"] = current
 
 

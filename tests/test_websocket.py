@@ -359,6 +359,7 @@ def test_sync_repairs_creates_and_removes_non_compliant_items(monkeypatch):
     item = {
         "item_key": "areas:office",
         "title": "Office",
+        "area_kind": "area",
         "compliance_status": "attention",
         "fingerprint": "sha256:first",
         "findings": [
@@ -377,7 +378,9 @@ def test_sync_repairs_creates_and_removes_non_compliant_items(monkeypatch):
     assert data["repair_issues"]["areas"]
 
     websocket._sync_repairs(
-        SimpleNamespace(), data, {"modules": {"areas": [{**item, "compliance_status": "compliant"}]}}
+        SimpleNamespace(),
+        data,
+        {"modules": {"areas": [{**item, "compliance_status": "compliant"}]}},
     )
 
     assert deleted
@@ -461,7 +464,11 @@ def test_sync_repairs_creates_pending_unassigned_device_issues_only(monkeypatch)
         "compliance_status": "attention",
         "findings": [],
     }
-    ignored = {**pending, "item_key": "areas:device:ignored", "review_status": "ignored"}
+    ignored = {
+        **pending,
+        "item_key": "areas:device:ignored",
+        "review_status": "ignored",
+    }
 
     websocket._sync_repairs(
         SimpleNamespace(),

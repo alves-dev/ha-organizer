@@ -11,11 +11,12 @@ try:  # Keep the deterministic engine importable in standalone test tooling.
     from homeassistant.core import HomeAssistant
 
     from .panel import async_register_panel
-    from .websocket import async_register_websocket_commands
+    from .websocket import async_initialize_repairs, async_register_websocket_commands
 except ImportError:  # Home Assistant supplies these at runtime.
     ConfigEntry = object
     HomeAssistant = object
     async_register_websocket_commands = None
+    async_initialize_repairs = None
     async_register_panel = None
 
 
@@ -24,6 +25,8 @@ async def async_setup(hass: HomeAssistant, _config: dict) -> bool:
     if async_register_websocket_commands:
         async_register_websocket_commands(hass)
         await async_register_panel(hass)
+        if async_initialize_repairs:
+            await async_initialize_repairs(hass)
     return True
 
 

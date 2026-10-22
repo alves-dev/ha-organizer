@@ -1,0 +1,41 @@
+name: Cleanup Development Releases
+
+on:
+  schedule:
+    - cron: "17 3 * * 0"
+  workflow_dispatch:
+    inputs:
+      keep:
+        description: Number of newest development prereleases to retain
+        required: false
+        default: "20"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cleanup-development-releases-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    env:
+      KEEP: ${{ inputs.keep || '20' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Validate retention limit
+        run: |
+          case "${KEEP}" in ''|*[!0-9]*) echo "keep must be a positive integer." >&2; exit 1;; esac
+          test "${KEEP}" -gt 0 || { echo "keep must be greater than zero." >&2; exit 1; }
+
+      - name: Remove older development prereleases
+        run: |
+          set -o pipefail
+          gh release list --limit 1000 --json tagName,isPrerelease,createdAt \
+            --jq '[.[] | select(.isPrerelease and (.tagName | test("^v[0-9]{4}\\.[0-9]{1,2}\\.[0-9]+-dev-[0-9a-f]{7}$"))) | .tagName] | .['"${KEEP}"':] | .[]' \
+            | while IFS= read -r tag; do
+                echo "Deleting development prerelease ${tag}"
+                gh release delete "${tag}" --yes --cleanup-tag
+              done

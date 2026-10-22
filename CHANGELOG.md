@@ -2,6 +2,39 @@
 
 All notable changes to HA Organizer are documented in this file.
 
+## [2026.10.0] - 2026-10-22
+
+### Fixed
+
+- Areas now resolve Home Assistant `floor_id` values through the floor registry,
+  so areas assigned to a floor no longer appear as “No floor”.
+- Completed the light and dark branding asset set, including valid `@2x`
+  variants and the Home Assistant-oriented blue palette.
+- Added a visible beta notice to the Entity IDs and Exposed & Aliases modules
+  to signal that these areas may change.
+- Added the same beta marker to both modules in the sidebar navigation.
+- Added the beta marker to the corresponding Entity IDs and Exposed & Aliases
+  sections in Settings.
+- Improved contrast for percentage values in Overview progress bars when using
+  a dark Home Assistant theme.
+
+### Added
+
+- Added optional, per-module Home Assistant Repairs for non-compliant or
+  attention items in Categories, Areas, Zones, and Labels.
+- Repairs now use the integration translations and show the module/item in the
+  title, findings and a direct link to HA Organizer. Areas create one Repair
+  per actual area; unassigned-device findings remain in the Areas audit.
+- Added a separate Areas setting for Repairs of pending devices without an
+  area; ignored devices are excluded.
+- Standardized the generated unassigned-device finding text in English so its
+  Repair title remains localized consistently with the rest of the HA UI.
+
+### Changed
+
+- Updated the installation guidance to reflect that HA Organizer is now part
+  of the official HACS default catalog, including direct HACS installation.
+
 ## [2026.8.0] - 2026-08-25
 
 ### Added

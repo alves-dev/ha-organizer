@@ -34,13 +34,20 @@ async def test_integration_setup_and_entry_lifecycle(monkeypatch):
     async def register_panel(value):
         registered.append(value)
 
+    async def initialize_repairs(value):
+        registered.append(value)
+
     monkeypatch.setattr(
         "custom_components.ha_organizer.async_register_panel", register_panel
+    )
+    monkeypatch.setattr(
+        "custom_components.ha_organizer.async_initialize_repairs",
+        initialize_repairs,
     )
     entry = SimpleNamespace(entry_id="entry", data={"a": 1}, options={"b": 2})
 
     assert await async_setup(hass, {}) is True
-    assert registered == [hass, hass]
+    assert registered == [hass, hass, hass]
     assert await async_setup_entry(hass, entry) is True
     assert hass.data[DOMAIN]["entry"] == {"a": 1, "b": 2}
     assert await async_unload_entry(hass, entry) is True
@@ -137,3 +144,6 @@ async def test_panel_registers_static_paths_and_sidebar(monkeypatch, tmp_path):
     ]
     assert register_panel.kwargs["frontend_url_path"] == "ha-organizer"
     assert register_panel.kwargs["require_admin"] is True
+    assert register_panel.kwargs["module_url"] == (
+        "/ha_organizer/ha-organizer.js?v=2026.10.0"
+    )

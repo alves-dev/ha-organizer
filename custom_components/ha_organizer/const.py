@@ -2,7 +2,25 @@ DOMAIN = "ha_organizer"
 NAME = "HA Organizer"
 VERSION = 1
 MODULES = ("categories", "areas", "zones", "labels", "entity_ids", "exposed")
-DEFAULT_MODULES = {module: {"enabled": True} for module in MODULES}
+REPAIR_MODULES = ("categories", "areas", "zones", "labels")
+DEFAULT_MODULES = {
+    module: {
+        "enabled": True,
+        "settings": (
+            {
+                "create_repairs": False,
+                **(
+                    {"create_unassigned_device_repairs": False}
+                    if module == "areas"
+                    else {}
+                ),
+            }
+            if module in REPAIR_MODULES
+            else {}
+        ),
+    }
+    for module in MODULES
+}
 DEFAULT_CONFIG = {
     "schema_version": VERSION,
     "modules": DEFAULT_MODULES,
@@ -18,6 +36,8 @@ DEFAULT_CONFIG = {
     "zones": {
         "detect_duplicate_geometry": True,
         "detect_overlapping_geometry": True,
+        "min_name_length": 0,
+        "case_policy": "any",
         "min_radius": 0,
         "max_radius": 0,
         "require_icon": False,

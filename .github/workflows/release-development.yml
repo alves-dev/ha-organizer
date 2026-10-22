@@ -3,53 +3,50 @@ name: Development Release
 on:
   push:
     branches:
-      - "develop"
+      - develop
 
 permissions:
   contents: write
 
+concurrency:
+  group: development-release-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Read development version
         id: version
         run: |
           version="$(jq -r '.version // empty' custom_components/ha_organizer/manifest.json)"
+          test -n "${version}" || { echo "The integration manifest does not define a version." >&2; exit 1; }
+          short_sha="${GITHUB_SHA::7}"
+          echo "value=${version%-dev}-dev-${short_sha}" >> "$GITHUB_OUTPUT"
 
-          if [ -z "$version" ]; then
-            echo "The integration manifest does not define a version." >&2
-            exit 1
-          fi
-
-          version="${version%-dev}"
-          echo "value=${version}-dev" >> "$GITHUB_OUTPUT"
-
-      - name: Delete existing release
-        run: |
-          gh release delete "v${DEV_VERSION}" --yes || true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEV_VERSION: ${{ steps.version.outputs.value }}
-
-      - name: Create or update tag
+      - name: Create immutable development tag
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git tag -f "v${{ steps.version.outputs.value }}"
-          git push origin --force "v${{ steps.version.outputs.value }}"
+          if git ls-remote --exit-code --tags origin "refs/tags/v${DEV_VERSION}" >/dev/null 2>&1; then
+            existing_sha="$(git ls-remote origin "refs/tags/v${DEV_VERSION}" | awk '{print $1}')"
+            test "${existing_sha}" = "${GITHUB_SHA}" || { echo "Existing development tag points to another commit." >&2; exit 1; }
+          else
+            git tag "v${DEV_VERSION}"
+            git push origin "v${DEV_VERSION}"
+          fi
+        env:
+          DEV_VERSION: ${{ steps.version.outputs.value }}
 
-      - name: Create GitHub Release
+      - name: Create GitHub prerelease
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: v${{ steps.version.outputs.value }}
           name: v${{ steps.version.outputs.value }}
-          body: "This is a development release from develop."
-          draft: false
+          body: Development release from develop for commit ${{ github.sha }}.
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -8,6 +8,11 @@
   registry, so assigned areas display their floor name instead of “No floor”.
 - Completed the light and dark branding asset set, including valid `@2x`
   variants and the Home Assistant-oriented blue palette.
+- Added a visible beta notice to the Entity IDs and Exposed & Aliases modules
+  to signal that these areas may change.
+- Added the same beta marker to both modules in the sidebar navigation.
+- Added the beta marker to the corresponding Entity IDs and Exposed & Aliases
+  sections in Settings.
 - Refactored zone auditing and Home Assistant snapshot assembly to comply with
   Ruff complexity limits without changing their output.
 - Reviewed or ignored Zone and Label items now show only the Reopen action;

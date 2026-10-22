@@ -13,6 +13,8 @@
 - Added the same beta marker to both modules in the sidebar navigation.
 - Added the beta marker to the corresponding Entity IDs and Exposed & Aliases
   sections in Settings.
+- Improved contrast for percentage values in Overview progress bars when using
+  a dark Home Assistant theme.
 - Refactored zone auditing and Home Assistant snapshot assembly to comply with
   Ruff complexity limits without changing their output.
 - Reviewed or ignored Zone and Label items now show only the Reopen action;

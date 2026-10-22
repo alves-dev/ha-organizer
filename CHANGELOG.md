@@ -8,6 +8,8 @@ All notable changes to HA Organizer are documented in this file.
 
 - Fixed navigation sidebar overflow on desktop browsers and the iOS companion
   app.
+- Fixed frontend localization from rewriting dynamic Home Assistant label names
+  and descriptions, such as changing “Simon” to “Yeson”.
 
 ## [2026.10.0] - 2026-10-22
 

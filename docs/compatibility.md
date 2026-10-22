@@ -6,6 +6,7 @@ may not work.
 
 | HA Organizer version | Home Assistant supported | Home Assistant not supported |
 |----------------------|--------------------------|------------------------------|
+| `2026.10.1`          | `2026.8.0` or newer      | versions before `2026.8.0`   |
 | `2026.10.0`          | `2026.8.0` or newer      | versions before `2026.8.0`   |
 | `2026.8.0` beta      | `2026.8.x`               | —                            |
 

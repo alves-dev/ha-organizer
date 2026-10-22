@@ -117,7 +117,11 @@ class HaOrganizer extends HTMLElement {
     const walker = document.createTreeWalker(this, NodeFilter.SHOW_TEXT);
     const nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
-    nodes.forEach((node) => { node.nodeValue = replace(node.nodeValue); });
+    nodes.forEach((node) => {
+      if (!node.parentElement?.closest("[data-no-localize]")) {
+        node.nodeValue = replace(node.nodeValue);
+      }
+    });
     this.querySelectorAll("[placeholder]").forEach((node) => { node.placeholder = replace(node.placeholder); });
     this.querySelectorAll("a[href]").forEach((link) => { link.target = "_blank"; link.rel = "noopener noreferrer"; });
   }
@@ -347,7 +351,7 @@ class HaOrganizer extends HTMLElement {
     const categoryInfo = item.module === "categories" ? `<td><div class="scope-list">${Object.keys(item.scopes || {}).map((scope) => { const scopeIcon = item.icons_by_scope?.[scope]; const label = scope === "automation" ? "Automations" : scope === "script" ? "Scripts" : "Scenes"; return `<span class="scope" title="${escapeHtml(scopeIcon || "No icon")}"><i>${scopeIcon ? `<ha-icon icon="${escapeHtml(scopeIcon)}"></ha-icon>` : "◌"}</i>${label}<small>${escapeHtml(scopeIcon || "No icon")}</small></span>`; }).join("") || "<span class=\"muted\">No scope</span>"}</div></td>` : "";
     const categoryVisual = item.module === "categories" ? `<span class="category-table-icon">${item.icon ? `<ha-icon icon="${escapeHtml(item.icon)}"></ha-icon>` : "⌁"}</span>` : "";
     const categoryMeta = item.module === "categories" ? `<small>${item.icon ? `Icon: ${escapeHtml(item.icon)}` : "No icon"}</small>` : "";
-    const description = item.module === "labels" && item.description ? `<small>Description: ${escapeHtml(item.description)}</small>` : "";
+    const description = item.module === "labels" && item.description ? `<small>Description: <span data-no-localize>${escapeHtml(item.description)}</span></small>` : "";
     const labelVisual = item.module === "labels" ? `<span class="label-visual"><span class="label-icon">${item.icon ? `<ha-icon icon="${escapeHtml(item.icon)}"></ha-icon>` : "🏷"}</span><span class="label-color" style="--label-color:${safeLabelColor(item.color)}" title="${item.color ? `Color: ${escapeHtml(item.color)}` : "No color"}"></span></span>` : "";
     const labelMeta = item.module === "labels" ? `<small>${item.icon ? `Icon: ${escapeHtml(item.icon)}` : "No icon"} · ${item.color ? `Color: ${escapeHtml(item.color)}` : "No color"}</small>` : "";
     const areaMeta = item.module === "areas" ? `<small>${item.floor ? `Floor: ${escapeHtml(item.floor)}` : "No floor"} · ${(item.devices || []).length} devices · ${(item.entities || []).length} entities</small>${item.picture ? `<img class="area-picture" src="${escapeHtml(item.picture)}" alt="">` : ""}${(item.device_details || []).map((device) => `<a class="device-link" href="/config/devices/device/${encodeURIComponent(device.id)}">${escapeHtml(device.name || device.id)} ↗</a>`).join("")}` : "";
@@ -358,7 +362,7 @@ class HaOrganizer extends HTMLElement {
     const reopen = item.review_status === "reviewed" || (
       item.review_status === "ignored" && ["zones", "labels"].includes(item.module)
     );
-    return `<tr data-search="${escapeHtml(`${item.title} ${item.description || ""} ${aliases.join(" ")} ${finding}`.toLowerCase())}" data-status="${escapeHtml(item.compliance_status)}" data-review="${escapeHtml(item.review_status)}"><td><div class="item-title"><span class="item-dot ${safeStatus(item.compliance_status)}"></span>${labelVisual}${categoryVisual}<div><strong>${escapeHtml(item.title)}</strong>${categoryMeta}${description}${labelMeta}${areaMeta}${zoneMeta}${aliasInfo}<small>${escapeHtml(finding)}</small></div></div></td>${categoryInfo}<td>${statusPill(item.compliance_status)}</td><td>${statusPill(item.review_status)}</td><td class="actions"><button class="review ${reopen ? "reopen-action" : "review-action"}" data-key="${escapeHtml(item.item_key)}" data-fp="${escapeHtml(item.fingerprint)}">${reopen ? "Reopen" : "Review"}</button>${ignore}</td></tr>`;
+    return `<tr data-search="${escapeHtml(`${item.title} ${item.description || ""} ${aliases.join(" ")} ${finding}`.toLowerCase())}" data-status="${escapeHtml(item.compliance_status)}" data-review="${escapeHtml(item.review_status)}"><td><div class="item-title"><span class="item-dot ${safeStatus(item.compliance_status)}"></span>${labelVisual}${categoryVisual}<div><strong><span data-no-localize>${escapeHtml(item.title)}</span></strong>${categoryMeta}${description}${labelMeta}${areaMeta}${zoneMeta}${aliasInfo}<small>${escapeHtml(finding)}</small></div></div></td>${categoryInfo}<td>${statusPill(item.compliance_status)}</td><td>${statusPill(item.review_status)}</td><td class="actions"><button class="review ${reopen ? "reopen-action" : "review-action"}" data-key="${escapeHtml(item.item_key)}" data-fp="${escapeHtml(item.fingerprint)}">${reopen ? "Reopen" : "Review"}</button>${ignore}</td></tr>`;
   }
 }
 

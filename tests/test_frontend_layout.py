@@ -16,3 +16,17 @@ def test_sidebar_toggle_stays_within_sidebar_bounds():
     source = FRONTEND.read_text(encoding="utf-8")
 
     assert ".sidebar-toggle{right:8px}" in source
+
+
+def test_dynamic_label_values_are_excluded_from_localization():
+    source = FRONTEND.read_text(encoding="utf-8")
+
+    assert 'closest("[data-no-localize]")' in source
+    assert (
+        '<strong><span data-no-localize>${escapeHtml(item.title)}</span></strong>'
+        in source
+    )
+    assert (
+        'Description: <span data-no-localize>${escapeHtml(item.description)}</span>'
+        in source
+    )

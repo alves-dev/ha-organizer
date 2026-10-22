@@ -36,13 +36,14 @@ class HaOrganizer extends HTMLElement {
 
   async render() {
     this._ready = true;
-    this.innerHTML = `<style>${CSS}${EXTRA_CSS}${UI_CSS}${CATEGORY_CSS}${POLICY_CSS}${ZONE_CSS}${EXPOSED_CSS}${LINK_CSS}${THEME_CSS}</style>
+    this.innerHTML = `<style>${CSS}${EXTRA_CSS}${UI_CSS}${CATEGORY_CSS}${POLICY_CSS}${ZONE_CSS}${EXPOSED_CSS}${LINK_CSS}${THEME_CSS}${ISSUE_9_CSS}</style>
       <div class="app-shell">
         <aside class="sidebar">
           <div class="brand"><img class="brand-mark" src="/ha_organizer/icon.png" alt="HA Organizer"><div><b>HA Organizer</b><small>Organization, under control</small></div></div>
+          <button class="sidebar-expand" id="sidebar-expand" aria-label="Expand sidebar">›</button>
           <div class="nav-label">NAVIGATION</div><button class="sidebar-toggle" id="sidebar-toggle" aria-label="Collapse sidebar">‹</button>
           <nav>${MODULES.map(([id, label, icon]) => `<button class="nav-item" data-module="${id}"><i><ha-icon icon="${icon}"></ha-icon></i><span>${label}</span>${["entity_ids", "exposed"].includes(id) ? `<span class="nav-beta" title="Beta feature: this module may change.">BETA</span>` : ""}</button>`).join("")}</nav>
-          <div class="sidebar-footer"><span class="pulse"></span> Read-only<small>Version 2026.10.0</small>${DEV_BUILD_STAMP ? `<small class="build-stamp">Copied ${BUILD_TIME}</small>` : ""}</div>
+          <div class="sidebar-footer"><button class="mobile-menu-button" id="mobile-menu-button" aria-label="Open Home Assistant navigation"><ha-icon icon="mdi:menu"></ha-icon></button><span class="pulse"></span><span class="sidebar-read-only">Read-only</span><small>Version 2026.10.1</small>${DEV_BUILD_STAMP ? `<small class="build-stamp">Copied ${BUILD_TIME}</small>` : ""}</div>
         </aside>
         <section class="workspace">
           <header class="topbar"><div class="mobile-brand"><img class="brand-mark" src="/ha_organizer/icon.png" alt="HA Organizer"><b>HA Organizer</b></div><div class="top-actions"><span class="last-scan">Local audit</span><button class="refresh" id="scan"><span>↻</span> Refresh analysis</button></div></header>
@@ -52,10 +53,15 @@ class HaOrganizer extends HTMLElement {
     this.querySelectorAll(".nav-item").forEach((button) => {
       button.onclick = () => this.show(button.dataset.module);
     });
-    this.querySelector("#sidebar-toggle").onclick = () => {
-      this.classList.toggle("sidebar-collapsed");
-      this.querySelector("#sidebar-toggle").textContent = this.classList.contains("sidebar-collapsed") ? "›" : "‹";
+    const setSidebarCollapsed = (collapsed) => {
+      this.classList.toggle("sidebar-collapsed", collapsed);
+      const toggle = this.querySelector("#sidebar-toggle");
+      toggle.textContent = collapsed ? "›" : "‹";
+      toggle.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
     };
+    this.querySelector("#sidebar-toggle").onclick = () => setSidebarCollapsed(!this.classList.contains("sidebar-collapsed"));
+    this.querySelector("#sidebar-expand").onclick = () => setSidebarCollapsed(false);
+    this.querySelector("#mobile-menu-button").onclick = () => this.dispatchEvent(new Event("hass-toggle-menu", { bubbles: true, composed: true }));
     this.querySelector("#scan").onclick = async () => {
       const button = this.querySelector("#scan");
       button.disabled = true;
@@ -117,7 +123,11 @@ class HaOrganizer extends HTMLElement {
     const walker = document.createTreeWalker(this, NodeFilter.SHOW_TEXT);
     const nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
-    nodes.forEach((node) => { node.nodeValue = replace(node.nodeValue); });
+    nodes.forEach((node) => {
+      if (!node.parentElement?.closest("[data-no-localize]")) {
+        node.nodeValue = replace(node.nodeValue);
+      }
+    });
     this.querySelectorAll("[placeholder]").forEach((node) => { node.placeholder = replace(node.placeholder); });
     this.querySelectorAll("a[href]").forEach((link) => { link.target = "_blank"; link.rel = "noopener noreferrer"; });
   }
@@ -347,7 +357,7 @@ class HaOrganizer extends HTMLElement {
     const categoryInfo = item.module === "categories" ? `<td><div class="scope-list">${Object.keys(item.scopes || {}).map((scope) => { const scopeIcon = item.icons_by_scope?.[scope]; const label = scope === "automation" ? "Automations" : scope === "script" ? "Scripts" : "Scenes"; return `<span class="scope" title="${escapeHtml(scopeIcon || "No icon")}"><i>${scopeIcon ? `<ha-icon icon="${escapeHtml(scopeIcon)}"></ha-icon>` : "◌"}</i>${label}<small>${escapeHtml(scopeIcon || "No icon")}</small></span>`; }).join("") || "<span class=\"muted\">No scope</span>"}</div></td>` : "";
     const categoryVisual = item.module === "categories" ? `<span class="category-table-icon">${item.icon ? `<ha-icon icon="${escapeHtml(item.icon)}"></ha-icon>` : "⌁"}</span>` : "";
     const categoryMeta = item.module === "categories" ? `<small>${item.icon ? `Icon: ${escapeHtml(item.icon)}` : "No icon"}</small>` : "";
-    const description = item.module === "labels" && item.description ? `<small>Description: ${escapeHtml(item.description)}</small>` : "";
+    const description = item.module === "labels" && item.description ? `<small>Description: <span data-no-localize>${escapeHtml(item.description)}</span></small>` : "";
     const labelVisual = item.module === "labels" ? `<span class="label-visual"><span class="label-icon">${item.icon ? `<ha-icon icon="${escapeHtml(item.icon)}"></ha-icon>` : "🏷"}</span><span class="label-color" style="--label-color:${safeLabelColor(item.color)}" title="${item.color ? `Color: ${escapeHtml(item.color)}` : "No color"}"></span></span>` : "";
     const labelMeta = item.module === "labels" ? `<small>${item.icon ? `Icon: ${escapeHtml(item.icon)}` : "No icon"} · ${item.color ? `Color: ${escapeHtml(item.color)}` : "No color"}</small>` : "";
     const areaMeta = item.module === "areas" ? `<small>${item.floor ? `Floor: ${escapeHtml(item.floor)}` : "No floor"} · ${(item.devices || []).length} devices · ${(item.entities || []).length} entities</small>${item.picture ? `<img class="area-picture" src="${escapeHtml(item.picture)}" alt="">` : ""}${(item.device_details || []).map((device) => `<a class="device-link" href="/config/devices/device/${encodeURIComponent(device.id)}">${escapeHtml(device.name || device.id)} ↗</a>`).join("")}` : "";
@@ -358,7 +368,7 @@ class HaOrganizer extends HTMLElement {
     const reopen = item.review_status === "reviewed" || (
       item.review_status === "ignored" && ["zones", "labels"].includes(item.module)
     );
-    return `<tr data-search="${escapeHtml(`${item.title} ${item.description || ""} ${aliases.join(" ")} ${finding}`.toLowerCase())}" data-status="${escapeHtml(item.compliance_status)}" data-review="${escapeHtml(item.review_status)}"><td><div class="item-title"><span class="item-dot ${safeStatus(item.compliance_status)}"></span>${labelVisual}${categoryVisual}<div><strong>${escapeHtml(item.title)}</strong>${categoryMeta}${description}${labelMeta}${areaMeta}${zoneMeta}${aliasInfo}<small>${escapeHtml(finding)}</small></div></div></td>${categoryInfo}<td>${statusPill(item.compliance_status)}</td><td>${statusPill(item.review_status)}</td><td class="actions"><button class="review ${reopen ? "reopen-action" : "review-action"}" data-key="${escapeHtml(item.item_key)}" data-fp="${escapeHtml(item.fingerprint)}">${reopen ? "Reopen" : "Review"}</button>${ignore}</td></tr>`;
+    return `<tr data-search="${escapeHtml(`${item.title} ${item.description || ""} ${aliases.join(" ")} ${finding}`.toLowerCase())}" data-status="${escapeHtml(item.compliance_status)}" data-review="${escapeHtml(item.review_status)}"><td><div class="item-title"><span class="item-dot ${safeStatus(item.compliance_status)}"></span>${labelVisual}${categoryVisual}<div><strong><span data-no-localize>${escapeHtml(item.title)}</span></strong>${categoryMeta}${description}${labelMeta}${areaMeta}${zoneMeta}${aliasInfo}<small>${escapeHtml(finding)}</small></div></div></td>${categoryInfo}<td>${statusPill(item.compliance_status)}</td><td>${statusPill(item.review_status)}</td><td class="actions"><button class="review ${reopen ? "reopen-action" : "review-action"}" data-key="${escapeHtml(item.item_key)}" data-fp="${escapeHtml(item.fingerprint)}">${reopen ? "Reopen" : "Review"}</button>${ignore}</td></tr>`;
   }
 }
 
@@ -397,5 +407,6 @@ LINK_CSS += `.unassigned-device>span:first-of-type{flex:1!important}.unassigned-
 LINK_CSS += `.flow-step{position:relative}.flow-complete{position:absolute;top:7px;right:7px;color:var(--organizer-success,#15976f);opacity:.82;--mdc-icon-size:14px}.flow-step.complete{border-color:color-mix(in srgb,var(--organizer-success,#15976f) 35%,var(--organizer-border,#e7eaf2))}`;
 
 const THEME_CSS = `:host{--organizer-background:var(--primary-background-color,#f5f7fb);--organizer-card:var(--card-background-color,#fff);--organizer-text:var(--primary-text-color,#17233c);--organizer-muted:var(--secondary-text-color,#718098);--organizer-border:var(--divider-color,#e9edf5);--organizer-primary:var(--primary-color,#6651dc);--organizer-primary-text:var(--text-primary-color,#fff);--organizer-sidebar:var(--app-header-background-color,var(--primary-color,#17233c));--organizer-sidebar-text:var(--app-header-text-color,#fff);--organizer-success:var(--success-color,#15976f);--organizer-warning:var(--warning-color,#be7a15);--organizer-error:var(--error-color,#ca5367);color:var(--organizer-text);background:var(--organizer-background)}.app-shell{background:var(--organizer-background)}.sidebar{background:var(--organizer-sidebar);color:var(--organizer-sidebar-text)}.brand,.nav-item:hover,.nav-item.active{color:var(--organizer-sidebar-text)}.nav-item.active,.refresh,.save-settings,.sidebar-toggle{background:var(--organizer-primary);color:var(--organizer-primary-text);box-shadow:none}.topbar,.metric-card,.summary-card,.table-card,.category-card,.zone-card,.settings-card,.exposed-card,.exposed-summary>div,.exposed-list,.areas-list,.unassigned-list,.module-progress-grid .bar-row,.flow-step,.view-switch,.search,.table-toolbar select,.category-toolbar select,.setting-two select,.setting-two input,.areas-device-link{background:var(--organizer-card);color:var(--organizer-text);border-color:var(--organizer-border)}.page-heading h1,.section-title h2,.metric-card strong,.category-summary strong,.zone-summary strong,.exposed-summary strong,.category-name h3,.zone-name h3,.exposed-card-head h3,.item-title strong,.empty h2,.empty h3,.settings-card-title h2,.areas-section-heading h2,.areas-primary strong,.unassigned-device strong,.zone-table-name strong,.exposed-entity strong{color:var(--organizer-text)}.page-heading p,.section-title p,.metric-card span,.category-summary small,.zone-summary small,.exposed-summary small,.category-name small,.zone-name small,.item-title small,.settings-card-title p,.areas-section-heading p,.areas-primary small,.unassigned-device small,.exposed-entity small,.scope,.setting-label,.check-row,.check-setting,.zone-details b,.exposed-details p{color:var(--organizer-muted)}.table-card th,.category-card-actions,.exposed-actions,.zone-actions,.areas-devices{background:var(--organizer-background);color:var(--organizer-muted)}th,td,.category-scopes,.zone-details,.exposed-details,.areas-row+.areas-row,.unassigned-device+.unassigned-device,.exposed-list-row+.exposed-list-row{border-color:var(--organizer-border)}tbody tr:hover,.exposed-list-row:hover,.areas-expand:hover,.unassigned-device:hover{background:var(--organizer-background)}.page-heading h1 span,.eyebrow,.scope i,.scope-icon,.category-resources,.page-actions a,.device-link,.areas-chevron,.areas-device-link small,.areas-expanded-heading a,.flow-step b,.flow-step span,.category-name code,.zone-table code{color:var(--organizer-primary)}.hero{background:var(--organizer-primary);box-shadow:none}.progress-ring:after{background:var(--organizer-primary)}.policy-banner,.policy-note{background:var(--organizer-background);border-color:var(--organizer-border);color:var(--organizer-primary)}.review,.review-action,.category-review,.category-review.review-action,.secondary-action,.alias-chip,.areas-section-heading>span,.areas-icon,.category-icon,.category-table-icon,.exposed-icon,.label-visual,.summary-symbol,.empty-icon{background:var(--organizer-background);color:var(--organizer-primary)}.check-row input,.check-setting input{accent-color:var(--organizer-primary)}.pill.compliant,.pill.reviewed{color:var(--organizer-success);background:color-mix(in srgb,var(--organizer-success) 14%,var(--organizer-card))}.pill.attention,.pill.stale{color:var(--organizer-warning);background:color-mix(in srgb,var(--organizer-warning) 14%,var(--organizer-card))}.pill.non_compliant,.danger-action{color:var(--organizer-error);background:color-mix(in srgb,var(--organizer-error) 14%,var(--organizer-card))}.pill.compliant i,.pill.reviewed i,.bar i.green,.item-dot{background:var(--organizer-success)}.pill.attention i,.pill.stale i,.bar i.orange,.item-dot.attention{background:var(--organizer-warning)}.pill.non_compliant i,.bar i.red,.item-dot.non_compliant{background:var(--organizer-error)}.bar i.purple{background:var(--organizer-primary)}.bar-row b{color:var(--organizer-text)}.label-color{border-color:var(--organizer-card)}:host([dark-mode]) .label-color{border-color:var(--organizer-card)}`;
+const ISSUE_9_CSS = `.sidebar{overflow-x:hidden}.sidebar-toggle{right:8px}.sidebar-collapsed .sidebar-toggle{display:none}.sidebar-expand{display:none}.sidebar-collapsed .sidebar-expand{display:grid;place-items:center;align-self:center;width:32px;height:28px;margin:0 0 10px;border:0;border-radius:8px;background:var(--organizer-primary,#6651dc);color:var(--organizer-primary-text,#fff);font-size:20px;cursor:pointer}.mobile-menu-button{display:none}.nav-item>span:not(.nav-beta){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(max-width:800px){.sidebar-toggle,.sidebar-expand{display:none!important}.sidebar-footer{display:flex;flex-direction:column;align-items:center;gap:7px;padding:10px 0;margin-top:auto}.sidebar-footer>.pulse,.sidebar-footer>.sidebar-read-only,.sidebar-footer>small{display:none}.mobile-menu-button{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:8px;background:var(--organizer-primary,#6651dc);color:var(--organizer-primary-text,#fff);cursor:pointer}.mobile-menu-button ha-icon{--mdc-icon-size:20px}}`;
 
 if (!customElements.get("ha-organizer")) customElements.define("ha-organizer", HaOrganizer);

@@ -8,6 +8,8 @@ All notable changes to HA Organizer are documented in this file.
 
 - Areas now resolve Home Assistant `floor_id` values through the floor registry,
   so areas assigned to a floor no longer appear as “No floor”.
+- Completed the light and dark branding asset set, including valid `@2x`
+  variants and the Home Assistant-oriented blue palette.
 
 ## [2026.8.0] - 2026-08-25
 

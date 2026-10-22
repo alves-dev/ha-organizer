@@ -6,6 +6,8 @@
 
 - Area inventory now resolves Home Assistant `floor_id` values through the floor
   registry, so assigned areas display their floor name instead of “No floor”.
+- Completed the light and dark branding asset set, including valid `@2x`
+  variants and the Home Assistant-oriented blue palette.
 - Refactored zone auditing and Home Assistant snapshot assembly to comply with
   Ruff complexity limits without changing their output.
 - Reviewed or ignored Zone and Label items now show only the Reopen action;

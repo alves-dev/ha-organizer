@@ -166,7 +166,7 @@ def test_snapshot_collects_registry_data_and_exposure(monkeypatch):
     area = SimpleNamespace(
         id="office",
         name="Office",
-        floor="ground",
+        floor_id="ground",
         icon="mdi:desk",
         picture=None,
         aliases=("Study",),
@@ -208,6 +208,11 @@ def test_snapshot_collects_registry_data_and_exposure(monkeypatch):
     areas_registry = SimpleNamespace(
         areas={area.id: area},
         async_get_area={area.id: area}.get,
+    )
+    floors_registry = SimpleNamespace(
+        async_get_floor=lambda floor_id: SimpleNamespace(name="Ground floor")
+        if floor_id == "ground"
+        else None,
     )
     devices = {
         assigned_device.id: assigned_device,
@@ -271,6 +276,7 @@ def test_snapshot_collects_registry_data_and_exposure(monkeypatch):
         states=states,
     )
     monkeypatch.setattr(websocket.ar, "async_get", lambda _: areas_registry)
+    monkeypatch.setattr(websocket.fr, "async_get", lambda _: floors_registry)
     monkeypatch.setattr(websocket.dr, "async_get", lambda _: devices_registry)
     monkeypatch.setattr(websocket.er, "async_get", lambda _: entities_registry)
     monkeypatch.setattr(websocket.cr, "async_get", lambda _: category_registry)
@@ -284,6 +290,7 @@ def test_snapshot_collects_registry_data_and_exposure(monkeypatch):
 
     snapshot = websocket._snapshot(hass)
 
+    assert snapshot["areas"][0]["floor"] == "Ground floor"
     assert snapshot["areas"][0]["device_details"] == [
         {
             "id": "device-1",

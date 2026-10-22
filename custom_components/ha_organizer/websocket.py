@@ -15,6 +15,7 @@ from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import category_registry as cr
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import floor_registry as fr
 from homeassistant.helpers import label_registry as lr
 from homeassistant.helpers.storage import Store
 import voluptuous as vol
@@ -57,6 +58,15 @@ def _device_integration(hass, device):
         "integration": entry.domain,
         "integration_name": entry.domain.replace("_", " ").title(),
     }
+
+
+def _area_floor(area, floors_reg):
+    floor_id = getattr(area, "floor_id", None)
+    if floor_id and floors_reg:
+        floor = floors_reg.async_get_floor(floor_id)
+        if floor:
+            return floor.name
+    return getattr(area, "floor", None)
 
 
 def _validate_categories(categories):
@@ -258,6 +268,7 @@ async def _store(hass):
 
 def _snapshot(hass):  # noqa: PLR0912  # NOSONAR
     areas_reg = ar.async_get(hass)
+    floors_reg = fr.async_get(hass)
     devices_reg = dr.async_get(hass)
     entities_reg = er.async_get(hass)
     devices_by_area = {}
@@ -283,7 +294,7 @@ def _snapshot(hass):  # noqa: PLR0912  # NOSONAR
             {
                 "id": area.id,
                 "name": area.name,
-                "floor": getattr(area, "floor", None),
+                "floor": _area_floor(area, floors_reg),
                 "icon": getattr(area, "icon", None),
                 "picture": getattr(area, "picture", None),
                 "aliases": list(getattr(area, "aliases", ()) or ()),

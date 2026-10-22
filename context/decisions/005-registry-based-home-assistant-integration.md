@@ -18,7 +18,8 @@ The existing code does not document alternatives. Direct mutations or tying audi
 
 ## Outcomes
 
-Outcomes to be documented as project evolves.
+- Area floor assignments are read from `AreaEntry.floor_id` and resolved through
+  the native floor registry before the snapshot reaches the audit engine.
 
 ## Related
 

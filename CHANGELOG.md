@@ -2,6 +2,13 @@
 
 All notable changes to HA Organizer are documented in this file.
 
+## [2026.10.0] - 2026-10-22
+
+### Fixed
+
+- Areas now resolve Home Assistant `floor_id` values through the floor registry,
+  so areas assigned to a floor no longer appear as “No floor”.
+
 ## [2026.8.0] - 2026-08-25
 
 ### Added

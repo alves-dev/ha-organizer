@@ -1,6 +1,6 @@
 [project]
 name = "ha-organizer"
-version = "2026.8.0"
+version = "2026.10.0"
 description = "Home Assistant custom integration for auditing organisation"
 requires-python = ">=3.14.2"
 dependencies = [

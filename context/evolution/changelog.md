@@ -1,9 +1,11 @@
 # Changelog
 
-## [Unreleased]
+## [2026.10.0] - 2026-10-22
 
 ### Fixed
 
+- Area inventory now resolves Home Assistant `floor_id` values through the floor
+  registry, so assigned areas display their floor name instead of “No floor”.
 - Refactored zone auditing and Home Assistant snapshot assembly to comply with
   Ruff complexity limits without changing their output.
 - Reviewed or ignored Zone and Label items now show only the Reopen action;

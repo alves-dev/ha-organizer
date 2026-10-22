@@ -42,7 +42,7 @@ class HaOrganizer extends HTMLElement {
           <div class="brand"><img class="brand-mark" src="/ha_organizer/icon.png" alt="HA Organizer"><div><b>HA Organizer</b><small>Organization, under control</small></div></div>
           <div class="nav-label">NAVIGATION</div><button class="sidebar-toggle" id="sidebar-toggle" aria-label="Collapse sidebar">‹</button>
           <nav>${MODULES.map(([id, label, icon]) => `<button class="nav-item" data-module="${id}"><i><ha-icon icon="${icon}"></ha-icon></i><span>${label}</span></button>`).join("")}</nav>
-          <div class="sidebar-footer"><span class="pulse"></span> Read-only<small>Version 2026.8.0</small>${DEV_BUILD_STAMP ? `<small class="build-stamp">Copied ${BUILD_TIME}</small>` : ""}</div>
+          <div class="sidebar-footer"><span class="pulse"></span> Read-only<small>Version 2026.10.0</small>${DEV_BUILD_STAMP ? `<small class="build-stamp">Copied ${BUILD_TIME}</small>` : ""}</div>
         </aside>
         <section class="workspace">
           <header class="topbar"><div class="mobile-brand"><img class="brand-mark" src="/ha_organizer/icon.png" alt="HA Organizer"><b>HA Organizer</b></div><div class="top-actions"><span class="last-scan">Local audit</span><button class="refresh" id="scan"><span>↻</span> Refresh analysis</button></div></header>

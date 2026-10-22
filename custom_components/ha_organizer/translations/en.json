@@ -1,0 +1,8 @@
+{
+  "issues": {
+    "audit_item": {
+      "title": "{module}: {item}",
+      "description": "This item needs attention in HA Organizer.\n\nIdentifier: {item_id}\nStatus: {status}\n\nFindings:\n{details}\n\nOpen [HA Organizer](/ha-organizer) to review the {module} item."
+    }
+  }
+}

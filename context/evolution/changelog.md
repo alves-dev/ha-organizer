@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-22
+
+- Confirmed `alves-dev/ha-organizer` in the official HACS default integration
+  catalog and updated the README installation guidance and HACS badge.
+
 ## [2026.10.0] - 2026-10-22
 
 ### Fixed

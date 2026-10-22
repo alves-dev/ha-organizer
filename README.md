@@ -10,15 +10,12 @@ consistency, duplicate or missing resources, review progress, and links to the
 native Home Assistant screens where changes can be made manually.
 
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.8%2B-41BDF5?logo=homeassistant)
-![HACS](https://img.shields.io/badge/HACS-Custom%20Integration-18BC9C?style=flat-square)
+![HACS](https://img.shields.io/badge/HACS-Default%20Repository-18BC9C?style=flat-square)
 ![Version](https://img.shields.io/badge/Version-2026.10.0-41BDF5?style=flat-square)
 [![Quality Gate](https://sonar.alves-dev.com/api/project_badges/measure?project=ha-organizer&metric=alert_status)](https://sonar.alves-dev.com/dashboard?id=ha-organizer)
 [![Coverage](https://sonar.alves-dev.com/api/project_badges/measure?project=ha-organizer&metric=coverage)](https://sonar.alves-dev.com/dashboard?id=ha-organizer)
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=alves-dev&repository=ha-organizer&category=integration)
-
-> HA Organizer is currently in beta. Audit rules and the interface may evolve
-> as the integration is used with more Home Assistant installations.
 
 ## What it does
 
@@ -28,7 +25,8 @@ modules:
 - **Overview** — consolidated compliance and review progress.
 - **Categories** — compares automation and script categories, including names
   and icons.
-- **Areas** — inventories areas, devices, and associated entities.
+- **Areas** — inventories areas, devices, and associated entities; records area
+  reviews and supports searching and batch-ignoring devices without an area.
 - **Zones** — reviews names, icons, radius, coordinates, and duplicate geometry.
 - **Labels** — inventories label names, icons, and colors.
 - **Entity IDs** — compares entity IDs with the naming policy configured in the
@@ -52,6 +50,34 @@ The Overview page presents the suggested maintenance order:
 This is a practical navigation order, not a requirement. Each module can be
 opened independently whenever its native Home Assistant data is ready.
 
+## Screenshots
+
+The panel is designed for a focused, read-only review workflow:
+
+### Overview
+
+Overview combines compliance with human review progress, including completed
+area reviews and intentionally ignored devices without an area.
+
+![HA Organizer Overview](docs/screenshots/overview.png)
+
+### Areas
+
+The Areas module expands each area to show its devices and entities. Devices
+without an area can be filtered by name, device ID, or entity ID, selected in
+bulk, and ignored together when they are intentionally virtual. Ignored devices
+remain visible in a separate section and can be restored later.
+
+![HA Organizer Areas](docs/screenshots/areas.png)
+
+### Settings
+
+Settings are organized by audit module. They include optional Home Assistant
+Repairs, area review policies, naming and normalization rules, and the beta
+policies for Entity IDs and Exposed & Aliases.
+
+![HA Organizer Settings](docs/screenshots/settings.jpg)
+
 ## Review model
 
 HA Organizer keeps technical compliance separate from human review:
@@ -64,23 +90,29 @@ Reviewed and ignored items are associated with a fingerprint of the relevant
 data. If that data changes, the item becomes stale and can be reviewed again.
 Only the Organizer's own settings, review decisions, and scan data are stored.
 
+Area review is recorded separately from technical compliance: an administrator
+can mark an area reviewed after checking its devices, while devices without an
+area can be ignored individually or in a bounded batch. Those decisions are
+included in Overview and become stale when the relevant inventory changes.
+
+When enabled in Settings, the integration can also create Home Assistant
+Repairs for non-compliant areas, zones, labels, and categories, plus pending
+devices without an area. Ignored devices do not create Repairs.
+
 ## HACS availability
 
-HA Organizer is not currently in the default HACS catalog; it is available as
-an HACS custom repository. Install it using
-`https://github.com/alves-dev/ha-organizer` and the **Integration** category.
+HA Organizer is available in HACS and is listed in the official default
+catalog. Search for **HA Organizer** in **HACS > Integrations**, or use the
+direct-open button above to open the repository in HACS.
 
 ## Installation
 
 ### HACS
 
-1. Open **HACS > Integrations** and add
-   `https://github.com/alves-dev/ha-organizer` as a custom repository in the
-   **Integration** category.
-2. Search for **HA Organizer**.
-3. Install the integration and restart Home Assistant.
-4. Open **Settings > Devices & services > Add integration**.
-5. Search for **HA Organizer** and complete the minimal setup.
+1. Open **HACS > Integrations** and search for **HA Organizer**.
+2. Install the integration and restart Home Assistant.
+3. Open **Settings > Devices & services > Add integration**.
+4. Search for **HA Organizer** and complete the minimal setup.
 
 ### Manual
 
@@ -99,6 +131,9 @@ Where possible, the panel links directly to the native Home Assistant pages:
 
 These links are intentionally simple navigation links. HA Organizer does not
 edit native resources through its own WebSocket API.
+
+The integration is also read-only with respect to native data when recording
+review progress: review and ignore actions update only Organizer-owned state.
 
 ## Compatibility
 

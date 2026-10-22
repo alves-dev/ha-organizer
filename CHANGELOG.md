@@ -30,6 +30,11 @@ All notable changes to HA Organizer are documented in this file.
 - Standardized the generated unassigned-device finding text in English so its
   Repair title remains localized consistently with the rest of the HA UI.
 
+### Changed
+
+- Updated the installation guidance to reflect that HA Organizer is now part
+  of the official HACS default catalog, including direct HACS installation.
+
 ## [2026.8.0] - 2026-08-25
 
 ### Added

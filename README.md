@@ -11,7 +11,7 @@ native Home Assistant screens where changes can be made manually.
 
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.8%2B-41BDF5?logo=homeassistant)
 ![HACS](https://img.shields.io/badge/HACS-Default%20Repository-18BC9C?style=flat-square)
-![Version](https://img.shields.io/badge/Version-2026.10.1-41BDF5?style=flat-square)
+![Version](https://img.shields.io/badge/Version-2026.10.2-41BDF5?style=flat-square)
 [![Quality Gate](https://sonar.alves-dev.com/api/project_badges/measure?project=ha-organizer&metric=alert_status)](https://sonar.alves-dev.com/dashboard?id=ha-organizer)
 [![Coverage](https://sonar.alves-dev.com/api/project_badges/measure?project=ha-organizer&metric=coverage)](https://sonar.alves-dev.com/dashboard?id=ha-organizer)
 
@@ -137,7 +137,7 @@ review progress: review and ignore actions update only Organizer-owned state.
 
 ## Compatibility
 
-HA Organizer `2026.10.1` requires Home Assistant `2026.8.0` or newer. See the
+HA Organizer `2026.10.2` requires Home Assistant `2026.8.0` or newer. See the
 [compatibility matrix](docs/compatibility.md) for tested combinations and
 release guidance.
 

@@ -2,6 +2,15 @@
 
 All notable changes to HA Organizer are documented in this file.
 
+## [2026.10.2] - 2026-10-24
+
+### Fixed
+
+- Review actions now update the cached audit result and Repairs without
+  triggering a full Home Assistant inventory reanalysis.
+- Module navigation now loads cached results, while the explicit refresh action
+  remains the full analysis boundary.
+
 ## [2026.10.1] - 2026-10-22
 
 ### Fixed

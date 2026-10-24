@@ -24,6 +24,8 @@ devices from the work that still requires attention.
   in one action.
 - [x] Area-specific review and ignored-device progress is visible on Overview.
 - [x] Review decisions become outdated when their relevant inventory changes.
+- [x] Recording a review does not trigger a full reanalysis of the Home
+  Assistant inventory.
 
 ## Related
 
@@ -33,6 +35,7 @@ devices from the work that still requires attention.
 - [Decision: Batch Review Actions](../decisions/007-batch-review-actions.md)
 - [Pattern: Canonical Findings and Stale Reviews](../knowledge/patterns/canonical-findings-and-stale-reviews.md)
 - [Pattern: Admin WebSocket Command](../knowledge/patterns/admin-websocket-command.md)
+- [Decision: Incremental Review Cache Updates](../decisions/009-incremental-review-cache-updates.md)
 
 ## Status
 

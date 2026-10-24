@@ -146,5 +146,5 @@ async def test_panel_registers_static_paths_and_sidebar(monkeypatch, tmp_path):
     assert register_panel.kwargs["frontend_url_path"] == "ha-organizer"
     assert register_panel.kwargs["require_admin"] is True
     assert register_panel.kwargs["module_url"] == (
-        "/ha_organizer/ha-organizer.js?v=2026.10.1"
+        "/ha_organizer/ha-organizer.js?v=2026.10.2"
     )

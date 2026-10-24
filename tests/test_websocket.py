@@ -7,6 +7,7 @@ from custom_components.ha_organizer.const import DEFAULT_CONFIG, VERSION
 
 MIN_LENGTH = 2
 MIN_RESULTS = 6
+MIN_BATCH_ITEMS = 2
 
 
 def test_merge_config_accepts_and_rejects_policy_values():
@@ -90,6 +91,7 @@ async def test_websocket_commands_handle_admin_workflow(monkeypatch):
         "do_scan",
         "review_set",
         "reviews_batch_set",
+        "get_results",
         "get_overview",
     )
     denied_message = {
@@ -155,6 +157,129 @@ async def test_websocket_commands_handle_admin_workflow(monkeypatch):
     assert any(error[1] == "invalid_status" for error in connection.errors)
     assert any(error[1] == "invalid_review" for error in connection.errors)
     assert len(connection.results) >= MIN_RESULTS
+
+
+@pytest.mark.asyncio
+async def test_review_updates_cached_scan_without_rebuilding_snapshot(monkeypatch):
+    monkeypatch.setattr(websocket, "Store", FakeStore)
+    FakeStore.data = {
+        "schema_version": VERSION,
+        "config": DEFAULT_CONFIG,
+        "reviews": {},
+        "last_scan": {
+            "modules": {
+                "areas": [
+                    {
+                        "item_key": "areas:office",
+                        "fingerprint": "office-fingerprint",
+                        "review_status": "pending",
+                        "compliance_status": "attention",
+                        "area_kind": "area",
+                    }
+                ]
+            }
+        },
+        "repair_issues": {},
+    }
+    monkeypatch.setattr(
+        websocket, "_snapshot", lambda _hass: pytest.fail("snapshot was rebuilt")
+    )
+    monkeypatch.setattr(websocket, "_sync_repairs", lambda *args: None)
+    commands = []
+    monkeypatch.setattr(
+        websocket.websocket_api,
+        "async_register_command",
+        lambda hass, command: commands.append(command),
+    )
+    hass = SimpleNamespace()
+    websocket.async_register_websocket_commands(hass)
+    handlers = {command.__name__: command.__wrapped__ for command in commands}
+    connection = FakeConnection()
+
+    await handlers["review_set"](
+        hass,
+        connection,
+        {
+            "id": 1,
+            "item_key": "areas:office",
+            "status": "reviewed",
+            "fingerprint": "office-fingerprint",
+        },
+    )
+
+    cached = FakeStore.data["last_scan"]["modules"]["areas"][0]
+    assert cached["review_status"] == "reviewed"
+    assert "result" not in connection.results[-1][1]
+
+    await handlers["get_overview"](hass, connection, {"id": 2})
+    assert connection.results[-1][1]["area_review"]["areas_reviewed"] == 1
+
+
+@pytest.mark.asyncio
+async def test_batch_review_updates_cached_scan_without_rebuilding_snapshot(
+    monkeypatch,
+):
+    monkeypatch.setattr(websocket, "Store", FakeStore)
+    FakeStore.data = {
+        "schema_version": VERSION,
+        "config": DEFAULT_CONFIG,
+        "reviews": {},
+        "last_scan": {
+            "modules": {
+                "areas": [
+                    {
+                        "item_key": "areas:device:one",
+                        "fingerprint": "one",
+                        "review_status": "pending",
+                        "compliance_status": "attention",
+                        "area_kind": "unassigned_device",
+                    },
+                    {
+                        "item_key": "areas:device:two",
+                        "fingerprint": "two",
+                        "review_status": "pending",
+                        "compliance_status": "attention",
+                        "area_kind": "unassigned_device",
+                    },
+                ]
+            }
+        },
+        "repair_issues": {},
+    }
+    monkeypatch.setattr(
+        websocket, "_snapshot", lambda _hass: pytest.fail("snapshot was rebuilt")
+    )
+    monkeypatch.setattr(websocket, "_sync_repairs", lambda *args: None)
+    commands = []
+    monkeypatch.setattr(
+        websocket.websocket_api,
+        "async_register_command",
+        lambda hass, command: commands.append(command),
+    )
+    hass = SimpleNamespace()
+    websocket.async_register_websocket_commands(hass)
+    handlers = {command.__name__: command.__wrapped__ for command in commands}
+    connection = FakeConnection()
+
+    await handlers["reviews_batch_set"](
+        hass,
+        connection,
+        {
+            "id": 1,
+            "status": "ignored",
+            "items": [
+                {"item_key": "areas:device:one", "fingerprint": "one"},
+                {"item_key": "areas:device:two", "fingerprint": "two"},
+            ],
+        },
+    )
+
+    statuses = [
+        item["review_status"]
+        for item in FakeStore.data["last_scan"]["modules"]["areas"]
+    ]
+    assert statuses == ["ignored", "ignored"]
+    assert connection.results[-1][1]["count"] == MIN_BATCH_ITEMS
 
 
 @pytest.mark.asyncio

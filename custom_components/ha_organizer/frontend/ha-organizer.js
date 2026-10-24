@@ -43,7 +43,7 @@ class HaOrganizer extends HTMLElement {
           <button class="sidebar-expand" id="sidebar-expand" aria-label="Expand sidebar">›</button>
           <div class="nav-label">NAVIGATION</div><button class="sidebar-toggle" id="sidebar-toggle" aria-label="Collapse sidebar">‹</button>
           <nav>${MODULES.map(([id, label, icon]) => `<button class="nav-item" data-module="${id}"><i><ha-icon icon="${icon}"></ha-icon></i><span>${label}</span>${["entity_ids", "exposed"].includes(id) ? `<span class="nav-beta" title="Beta feature: this module may change.">BETA</span>` : ""}</button>`).join("")}</nav>
-          <div class="sidebar-footer"><button class="mobile-menu-button" id="mobile-menu-button" aria-label="Open Home Assistant navigation"><ha-icon icon="mdi:menu"></ha-icon></button><span class="pulse"></span><span class="sidebar-read-only">Read-only</span><small>Version 2026.10.1</small>${DEV_BUILD_STAMP ? `<small class="build-stamp">Copied ${BUILD_TIME}</small>` : ""}</div>
+          <div class="sidebar-footer"><button class="mobile-menu-button" id="mobile-menu-button" aria-label="Open Home Assistant navigation"><ha-icon icon="mdi:menu"></ha-icon></button><span class="pulse"></span><span class="sidebar-read-only">Read-only</span><small>Version 2026.10.2</small>${DEV_BUILD_STAMP ? `<small class="build-stamp">Copied ${BUILD_TIME}</small>` : ""}</div>
         </aside>
         <section class="workspace">
           <header class="topbar"><div class="mobile-brand"><img class="brand-mark" src="/ha_organizer/icon.png" alt="HA Organizer"><b>HA Organizer</b></div><div class="top-actions"><span class="last-scan">Local audit</span><button class="refresh" id="scan"><span>↻</span> Refresh analysis</button></div></header>
@@ -136,9 +136,9 @@ class HaOrganizer extends HTMLElement {
     this._module = module;
     this.setActive(module);
     const content = this.querySelector("#content");
-    content.innerHTML = `<div class="loading"><span class="spinner"></span> Analyzing resources…</div>`;
+    content.innerHTML = `<div class="loading"><span class="spinner"></span> Loading results…</div>`;
     try {
-      const data = module === "overview" ? await this.call("ha_organizer/overview") : module === "settings" ? await this.call("ha_organizer/config/get") : (await this.call("ha_organizer/scan")).modules[module] || [];
+      const data = module === "overview" ? await this.call("ha_organizer/overview") : module === "settings" ? await this.call("ha_organizer/config/get") : (await this.call("ha_organizer/results")).modules[module] || [];
       if (module === "overview") this.overview(data);
       else if (module === "settings") this.settings(data);
       else if (module === "categories") this.categories(data);

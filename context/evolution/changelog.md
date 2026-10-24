@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-24
+
+- Fixed review actions to update the cached audit result and Repairs without
+  triggering a full Home Assistant inventory reanalysis. Module navigation now
+  reads the cached result, while the explicit refresh action remains the scan
+  boundary.
+
 ## 2026-10-22
 
 - Updated the Organizer panel icon endpoint to serve the current blue branding

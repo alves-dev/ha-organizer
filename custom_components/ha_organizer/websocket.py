@@ -23,7 +23,7 @@ from homeassistant.helpers.storage import Store
 import voluptuous as vol
 
 from .const import DEFAULT_CONFIG, DOMAIN, MODULES, REPAIR_MODULES, VERSION
-from .core import overview, scan
+from .core import apply_reviews, overview, scan
 
 MAX_CATEGORY_NAME_LENGTH = 10000
 MAX_NUMERIC_SETTING = 1000000
@@ -464,6 +464,19 @@ async def _scan_and_sync_repairs(hass, data):
     return result
 
 
+def _update_cached_reviews(hass, data):
+    """Apply persisted review changes without rebuilding the HA snapshot."""
+    result = data.get("last_scan")
+    if not isinstance(result, dict):
+        return {"modules": {}}
+    reviews = data.get("reviews", {})
+    for items in result.get("modules", {}).values():
+        if isinstance(items, list):
+            apply_reviews(items, reviews)
+    _sync_repairs(hass, data, result)
+    return result
+
+
 def _snapshot(hass):  # noqa: PLR0912  # NOSONAR
     areas_reg = ar.async_get(hass)
     floors_reg = fr.async_get(hass)
@@ -722,6 +735,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # 
                 "reviewed_fingerprint": msg["fingerprint"],
                 "note": msg.get("note"),
             }
+        _update_cached_reviews(hass, data)
         await store.async_save(data)
         connection.send_result(msg["id"], {"ok": True})
 
@@ -767,8 +781,17 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # 
                     "reviewed_fingerprint": item["fingerprint"],
                     "note": None,
                 }
+        _update_cached_reviews(hass, data)
         await store.async_save(data)
         connection.send_result(msg["id"], {"ok": True, "count": len(items)})
+
+    @websocket_api.websocket_command({"type": "ha_organizer/results"})
+    @websocket_api.async_response
+    async def get_results(hass, connection, msg):
+        if not _admin(connection):
+            return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
+        _, data = await _store(hass)
+        connection.send_result(msg["id"], data.get("last_scan") or {"modules": {}})
 
     @websocket_api.websocket_command({"type": "ha_organizer/overview"})
     @websocket_api.async_response
@@ -790,6 +813,7 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # 
         do_scan,
         review_set,
         reviews_batch_set,
+        get_results,
         get_overview,
     ):
         websocket_api.async_register_command(hass, command)

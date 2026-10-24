@@ -6,7 +6,7 @@ from homeassistant.components import panel_custom
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant
 
-FRONTEND_VERSION = "2026.10.1"
+FRONTEND_VERSION = "2026.10.2"
 
 
 async def async_register_panel(hass: HomeAssistant):

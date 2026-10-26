@@ -2,13 +2,13 @@ name: Cleanup Development Releases
 
 on:
   schedule:
-    - cron: "17 0 * * 0"
+    - cron: "17 0 * * *"
   workflow_dispatch:
     inputs:
       keep:
         description: Number of newest development prereleases to retain
         required: false
-        default: "8"
+        default: "5"
         type: string
 
 permissions:
@@ -22,7 +22,7 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     env:
-      KEEP: ${{ inputs.keep || '8' }}
+      KEEP: ${{ inputs.keep || '5' }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Validate retention limit

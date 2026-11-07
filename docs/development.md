@@ -49,15 +49,17 @@ of truth for the remote analysis.
 
 ## Local Home Assistant testing
 
-The local Home Assistant checkout is `/home/alves-dev/projects/others/core`.
-Use the repository scripts to stop, update, and start the local instance:
+The shared local instance is documented in
+[Local Home Assistant](local-home-assistant.md). It runs in the
+`hass-dev-homeassistant` container and is available at `http://localhost:9123`.
+Use the repository scripts to deploy and control the instance:
 
 ```bash
+dev/deploy-to-ha.sh
 dev/stop-ha.sh
-dev/copy-to-core.sh
 dev/start-ha.sh
 ```
 
-Use the browser MCP/Chrome DevTools against `http://localhost:8123` for
-exploratory UI, console, and network checks. The local test account is `igor`
-with password `dev`; never reuse that credential outside this test instance.
+Use the browser MCP/Chrome DevTools against `http://localhost:9123` for
+exploratory UI, console, and network checks. Use only the credentials in the
+shared environment reference; never reuse them outside this test instance.

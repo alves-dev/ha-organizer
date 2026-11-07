@@ -1,0 +1,24 @@
+name: overview
+description: Show HA Organizer audit totals, review progress, and module flow.
+output: overview
+
+viewport:
+  width: 1280
+  height: 720
+
+steps:
+  - goto: /ha-organizer
+  - wait: 1000
+  - click:
+      role: button
+      name: "Sidebar toggle"
+  - wait: 500
+  - click:
+      role: button
+      name: /Refresh analysis/
+  - wait: 1000
+  - assert:
+      text: "Recommended organization flow"
+  - assert:
+      text: "Audit summary"
+  - screenshot: final

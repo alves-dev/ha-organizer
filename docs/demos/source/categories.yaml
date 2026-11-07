@@ -1,0 +1,24 @@
+name: categories
+description: Show category consistency across automations, scripts, and scenes.
+output: categories
+
+viewport:
+  width: 1280
+  height: 720
+
+steps:
+  - goto: /ha-organizer
+  - wait: 1000
+  - click:
+      role: button
+      name: /Refresh analysis/
+  - wait: 1000
+  - click:
+      role: button
+      name: /^Categories$/
+  - wait: 700
+  - assert:
+      text: "3 items found · 3 need attention"
+  - assert:
+      text: "Automations ↗"
+  - screenshot: final

@@ -1,0 +1,29 @@
+name: areas-inventory
+description: Open HA Organizer Areas and expand an area to review its devices.
+output: areas-inventory
+
+viewport:
+  width: 1280
+  height: 720
+
+steps:
+  - goto: /ha-organizer
+  - wait: 1000
+  - click:
+      role: button
+      name: /Refresh analysis/
+  - wait: 1000
+  - click:
+      role: button
+      name: /^Areas$/
+  - wait: 700
+  - assert:
+      role: heading
+      name: /^Devices without area$/
+  - click:
+      role: button
+      name: /Homer and Marge's Bedroom/
+  - wait: 700
+  - assert:
+      text: "Expand an area to check its devices, then record the review."
+  - screenshot: final

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-11-07
+
+- Aligned the README Marketplace section and badge with the shared integration
+  standards; the official catalog check confirms `alves-dev/ha-organizer` is
+  listed in the default catalog.
+- Added deterministic Playwright demos and README visual tour assets for the
+  main Organizer modules. The Settings demo collapses the Home Assistant
+  navigation and scrolls through all module policies.
+- Added an Areas workflow demo that shows a device being assigned through the
+  native Home Assistant UI and the Organizer audit reflecting the change.
+- Bumped the integration and frontend cache-busting version to `2026.11.0`.
+
 ## 2026-10-24
 
 - Fixed review actions to update the cached audit result and Repairs without

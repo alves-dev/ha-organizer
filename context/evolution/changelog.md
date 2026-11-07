@@ -2,6 +2,9 @@
 
 ## 2026-11-07
 
+- Aligned the README Marketplace section and badge with the shared integration
+  standards; the official catalog check confirms `alves-dev/ha-organizer` is
+  listed in the default catalog.
 - Added deterministic Playwright demos and README visual tour assets for the
   main Organizer modules. The Settings demo collapses the Home Assistant
   navigation and scrolls through all module policies.

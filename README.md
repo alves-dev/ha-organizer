@@ -10,7 +10,7 @@ consistency, duplicate or missing resources, review progress, and links to the
 native Home Assistant screens where changes can be made manually.
 
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.8%2B-41BDF5?logo=homeassistant)
-![HACS](https://img.shields.io/badge/HACS-Default%20Repository-18BC9C?style=flat-square)
+![Marketplace](https://img.shields.io/badge/Marketplace-Default%20Repository-18BC9C?style=flat-square)
 ![Version](https://img.shields.io/badge/Version-2026.11.0-41BDF5?style=flat-square)
 [![Quality Gate](https://sonar.alves-dev.com/api/project_badges/measure?project=ha-organizer&metric=alert_status)](https://sonar.alves-dev.com/dashboard?id=ha-organizer)
 [![Coverage](https://sonar.alves-dev.com/api/project_badges/measure?project=ha-organizer&metric=coverage)](https://sonar.alves-dev.com/dashboard?id=ha-organizer)
@@ -120,11 +120,12 @@ When enabled in Settings, the integration can also create Home Assistant
 Repairs for non-compliant areas, zones, labels, and categories, plus pending
 devices without an area. Ignored devices do not create Repairs.
 
-## HACS availability
+## Marketplace availability
 
-HA Organizer is available in HACS and is listed in the official default
-catalog. Search for **HA Organizer** in **HACS > Integrations**, or use the
-direct-open button above to open the repository in HACS.
+HA Organizer is available in Marketplace and is listed in the official default
+catalog. Search for **HA Organizer** in the Marketplace,
+or use the direct-open button above to open the repository in the supported
+HACS-compatible installation flow.
 
 ## Installation
 

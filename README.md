@@ -11,7 +11,7 @@ native Home Assistant screens where changes can be made manually.
 
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.8%2B-41BDF5?logo=homeassistant)
 ![HACS](https://img.shields.io/badge/HACS-Default%20Repository-18BC9C?style=flat-square)
-![Version](https://img.shields.io/badge/Version-2026.10.2-41BDF5?style=flat-square)
+![Version](https://img.shields.io/badge/Version-2026.11.0-41BDF5?style=flat-square)
 [![Quality Gate](https://sonar.alves-dev.com/api/project_badges/measure?project=ha-organizer&metric=alert_status)](https://sonar.alves-dev.com/dashboard?id=ha-organizer)
 [![Coverage](https://sonar.alves-dev.com/api/project_badges/measure?project=ha-organizer&metric=coverage)](https://sonar.alves-dev.com/dashboard?id=ha-organizer)
 
@@ -50,33 +50,54 @@ The Overview page presents the suggested maintenance order:
 This is a practical navigation order, not a requirement. Each module can be
 opened independently whenever its native Home Assistant data is ready.
 
-## Screenshots
+## Visual tour
 
-The panel is designed for a focused, read-only review workflow:
+The panel is designed for a focused, read-only review workflow. These short
+demos use the current Home Assistant UI and show the main review path.
 
-### Overview
+### 1. Overview
 
-Overview combines compliance with human review progress, including completed
-area reviews and intentionally ignored devices without an area.
+Overview combines compliance with human review progress and presents the
+recommended organization flow.
 
-![HA Organizer Overview](docs/screenshots/overview.png)
+![HA Organizer Overview](docs/demos/generated/overview.png)
 
-### Areas
+### 2. Areas and review resolution
 
-The Areas module expands each area to show its devices and entities. Devices
-without an area can be filtered by name, device ID, or entity ID, selected in
-bulk, and ignored together when they are intentionally virtual. Ignored devices
-remain visible in a separate section and can be restored later.
+The Areas module shows an area without the `Sun` device, finds it in
+**Devices without area**, opens the native Home Assistant device settings, and
+shows the resolved area after the association is saved.
 
-![HA Organizer Areas](docs/screenshots/areas.png)
+![HA Organizer area review workflow](docs/demos/generated/area-device-assignment.gif)
 
-### Settings
+### 3. Zones
+
+Zones expose radius, coordinates, state, and geometry findings. The demo also
+shows filtering the inventory to a zone with an overlap finding.
+
+![HA Organizer Zones](docs/demos/generated/zones.gif)
+
+### 4. Labels
+
+Labels are inventoried with their icons, colors, compliance status, and review
+state.
+
+![HA Organizer Labels](docs/demos/generated/labels.png)
+
+### 5. Categories
+
+Categories compare their presence across automations, scripts, and scenes and
+highlight missing scopes or policy issues.
+
+![HA Organizer Categories](docs/demos/generated/categories.png)
+
+### 6. Settings
 
 Settings are organized by audit module. They include optional Home Assistant
 Repairs, area review policies, naming and normalization rules, and the beta
 policies for Entity IDs and Exposed & Aliases.
 
-![HA Organizer Settings](docs/screenshots/settings.jpg)
+![HA Organizer Settings](docs/demos/generated/settings.gif)
 
 ## Review model
 
@@ -137,7 +158,7 @@ review progress: review and ignore actions update only Organizer-owned state.
 
 ## Compatibility
 
-HA Organizer `2026.10.2` requires Home Assistant `2026.8.0` or newer. See the
+HA Organizer `2026.11.0` requires Home Assistant `2026.8.0` or newer. See the
 [compatibility matrix](docs/compatibility.md) for tested combinations and
 release guidance.
 

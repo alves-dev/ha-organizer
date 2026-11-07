@@ -1,0 +1,38 @@
+name: settings
+description: Show HA Organizer module-specific audit policies.
+output: settings
+
+viewport:
+  width: 1280
+  height: 720
+
+steps:
+  - goto: /ha-organizer
+  - wait: 1000
+  - click:
+      role: button
+      name: "Sidebar toggle"
+  - wait: 500
+  - click:
+      role: button
+      name: /^Settings$/
+  - wait: 700
+  - assert:
+      text: "Choose how Organizer audits your installation. These settings never edit Home Assistant resources."
+  - assert:
+      text: "Rules for category names, icons, and selected scopes."
+  - press:
+      selector: ".workspace"
+      key: PageDown
+  - wait: 900
+  - press:
+      selector: ".workspace"
+      key: PageDown
+  - wait: 900
+  - press:
+      selector: ".workspace"
+      key: PageDown
+  - wait: 900
+  - assert:
+      text: "Rules for comparing names used by voice assistants."
+  - screenshot: final

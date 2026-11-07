@@ -1,0 +1,62 @@
+name: area-device-assignment
+description: Show Sun without an area, assign it to Living Room, and show the resolved area audit.
+output: area-device-assignment
+
+viewport:
+  width: 1280
+  height: 720
+
+steps:
+  - goto: /ha-organizer
+  - wait: 1800
+  - click:
+      role: button
+      name: /Refresh analysis/
+  - wait: 1800
+  - click:
+      role: button
+      name: /^Areas$/
+  - wait: 1200
+  - click:
+      role: button
+      name: /Living Room/
+  - wait: 1600
+  - assert:
+      text: "Floor: Ground Floor · 0 devices · 1 entities"
+  - fill:
+      placeholder: "Search area, device, or entity ID…"
+      value: Sun
+  - wait: 1600
+  - goto: /config/devices/device/e0ec45a8ac89952fdc291dcaa720142f
+  - wait: 2500
+  - click:
+      role: button
+      name: "Edit settings"
+  - wait: 1800
+  - click:
+      role: button
+      name: "Area"
+  - wait: 1000
+  - click:
+      role: option
+      name: /Living Room Ground Floor/
+  - wait: 900
+  - click:
+      role: button
+      name: "Update"
+  - wait: 2000
+  - goto: /ha-organizer
+  - wait: 2000
+  - click:
+      role: button
+      name: /Refresh analysis/
+  - wait: 1800
+  - click:
+      role: button
+      name: /^Areas$/
+  - wait: 1200
+  - click:
+      role: button
+      name: /Living Room/
+  - wait: 1600
+  - screenshot: final

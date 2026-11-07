@@ -1,0 +1,28 @@
+name: zones
+description: Show the zone inventory and filter a zone with an overlap finding.
+output: zones
+
+viewport:
+  width: 1280
+  height: 720
+
+steps:
+  - goto: /ha-organizer
+  - wait: 1000
+  - click:
+      role: button
+      name: /Refresh analysis/
+  - wait: 1000
+  - click:
+      role: button
+      name: /^Zones$/
+  - wait: 700
+  - assert:
+      text: "GEOGRAPHIC INVENTORY"
+  - fill:
+      placeholder: "Search by name or identifier…"
+      value: Downtown
+  - wait: 500
+  - assert:
+      text: "Downtown Uberlandia"
+  - screenshot: final

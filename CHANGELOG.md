@@ -2,6 +2,15 @@
 
 All notable changes to HA Organizer are documented in this file.
 
+## [2026.11.0] - 2026-11-07
+
+### Added
+
+- Added reproducible Playwright demos and README visual tour assets for
+  Overview, Areas, Zones, Labels, Categories, and Settings.
+- Added an Areas workflow demo showing a device moving from the unassigned list
+  into an area and the audit updating after the native Home Assistant change.
+
 ## [2026.10.2] - 2026-10-24
 
 ### Fixed

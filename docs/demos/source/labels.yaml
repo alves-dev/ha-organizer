@@ -1,0 +1,22 @@
+name: labels
+description: Show the label inventory and filter a configured label.
+output: labels
+
+viewport:
+  width: 1280
+  height: 720
+
+steps:
+  - goto: /ha-organizer
+  - wait: 1000
+  - click:
+      role: button
+      name: /Refresh analysis/
+  - wait: 1000
+  - click:
+      role: button
+      name: /^Labels$/
+  - wait: 700
+  - assert:
+      text: "3 items found · 0 need attention"
+  - screenshot: final

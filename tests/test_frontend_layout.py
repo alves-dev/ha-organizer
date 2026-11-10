@@ -64,3 +64,11 @@ def test_beta_module_overview_options_are_saved_from_settings():
     assert '"Entity IDs": "entity_ids"' in source
     assert '"Exposed & Aliases": "exposed"' in source
     assert 'include_in_overview: form.querySelector' in source
+
+
+def test_completed_overview_has_success_state_and_check_icon():
+    source = FRONTEND.read_text(encoding="utf-8")
+
+    assert 'reviewed === 100 ? "hero-complete"' in source
+    assert 'icon="mdi:check-circle-outline"' in source
+    assert ".hero.hero-complete" in source

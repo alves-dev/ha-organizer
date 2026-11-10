@@ -2,6 +2,13 @@
 
 All notable changes to HA Organizer are documented in this file.
 
+## [2026.11.1] - 2026-11-10
+
+### Changed
+
+- Added detailed Areas and Zones review progress to the Overview module cards.
+- Fixed the dark-theme styling of the detailed module-progress cards.
+
 ## [2026.11.0] - 2026-11-07
 
 ### Added

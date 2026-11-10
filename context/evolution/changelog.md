@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-11-10
+
+- Fixed dark-theme styling for the detailed module-progress cards by using the
+  Home Assistant theme tokens and bumped the integration and frontend
+  cache-busting version to `2026.11.1`.
+- Reworked Overview progress presentation: the recommended organization flow
+  remains consolidated, while Areas and Zones now expose detailed review
+  progress inside the module cards.
+- Moved the Areas-specific review summary out of the Overview and into the
+  module-level progress details, distinguishing reviewed areas from ignored
+  unassigned devices.
+
 ## 2026-11-07
 
 - Aligned the README Marketplace section and badge with the shared integration

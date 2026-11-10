@@ -77,3 +77,38 @@ def test_overview_has_separate_counters():
         }
     )
     assert data["review"]["pending"] == 1 and data["compliance"]["compliant"] == 1
+
+
+def test_overview_exposes_area_and_zone_progress_details():
+    data = overview(
+        {
+            "modules": {
+                "areas": [
+                    {
+                        "area_kind": "area",
+                        "review_status": "reviewed",
+                    },
+                    {
+                        "area_kind": "unassigned_device",
+                        "review_status": "ignored",
+                    },
+                ],
+                "zones": [
+                    {"review_status": "reviewed"},
+                    {"review_status": "pending"},
+                ],
+            }
+        }
+    )
+
+    assert data["module_progress"]["areas"]["details"] == [
+        {"label": "Areas", "completed": 1, "total": 1},
+        {
+            "label": "Unassigned devices ignored",
+            "completed": 1,
+            "total": 1,
+        },
+    ]
+    assert data["module_progress"]["zones"]["details"] == [
+        {"label": "Zones", "completed": 1, "total": 2}
+    ]

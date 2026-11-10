@@ -874,10 +874,41 @@ def overview(result: dict) -> dict:
         reviewed = sum(
             item.get("review_status") in ("reviewed", "ignored") for item in items
         )
+        details = []
+        if module == "areas":
+            area_items = [item for item in items if item.get("area_kind") == "area"]
+            unassigned_items = [
+                item
+                for item in items
+                if item.get("area_kind") == "unassigned_device"
+            ]
+            details = [
+                {
+                    "label": "Areas",
+                    "completed": sum(
+                        item.get("review_status") == "reviewed"
+                        for item in area_items
+                    ),
+                    "total": len(area_items),
+                },
+                {
+                    "label": "Unassigned devices ignored",
+                    "completed": sum(
+                        item.get("review_status") == "ignored"
+                        for item in unassigned_items
+                    ),
+                    "total": len(unassigned_items),
+                },
+            ]
+        elif module == "zones":
+            details = [
+                {"label": "Zones", "completed": reviewed, "total": len(items)}
+            ]
         module_progress[module] = {
             "total": len(items),
             "reviewed": reviewed,
             "progress": reviewed / len(items) if items else 1,
+            "details": details,
         }
 
     area_items = result.get("modules", {}).get("areas", [])

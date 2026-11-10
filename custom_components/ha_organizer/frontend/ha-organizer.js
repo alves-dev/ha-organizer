@@ -259,6 +259,7 @@ class HaOrganizer extends HTMLElement {
     const zones = config.zones || {};
     const labels = config.labels || {};
     const modulePolicy = (name) => config.modules?.[name]?.settings || {};
+    const overviewEnabled = (name) => modulePolicy(name).include_in_overview !== false;
     const repairEnabled = (name) => Boolean(config.modules?.[name]?.settings?.create_repairs);
     const unassignedRepairEnabled = Boolean(config.modules?.areas?.settings?.create_unassigned_device_repairs);
     const checked = (value) => value ? "checked" : "";
@@ -269,6 +270,18 @@ class HaOrganizer extends HTMLElement {
     const areasCard = [...form.querySelectorAll(".settings-card")].find((card) => card.querySelector("h2")?.textContent === "Areas");
     const areaRepairToggle = areasCard?.querySelector('input[name="areas_create_repairs"]')?.closest("label");
     areaRepairToggle?.insertAdjacentHTML("afterend", `<label class="check-setting"><input type="checkbox" name="areas_create_unassigned_device_repairs" ${checked(unassignedRepairEnabled)}><span><b>Create Repairs for devices without area</b><small>Show one Repair for each pending device without an area. Ignored devices are excluded.</small></span></label>`);
+    const overviewCards = {
+      "Entity IDs": "entity_ids",
+      "Exposed & Aliases": "exposed",
+    };
+    Object.entries(overviewCards).forEach(([title, module]) => {
+      const card = [...form.querySelectorAll(".settings-card")]
+        .find((candidate) => candidate.querySelector("h2")?.textContent === title);
+      card?.querySelector(".settings-card-title")?.insertAdjacentHTML(
+        "afterend",
+        `<label class="check-setting"><input type="checkbox" name="${module}_include_overview" ${checked(overviewEnabled(module))}><span><b>Include in Overview totals</b><small>Count ${title} in auditable items, attention, and automatic review progress.</small></span></label>`,
+      );
+    });
     form.addEventListener("submit", () => {
       let hidden = form.querySelector('input[data-unassigned-repair-value="true"]');
       if (!hidden) {
@@ -281,6 +294,16 @@ class HaOrganizer extends HTMLElement {
       const checkbox = form.querySelector('input[name="areas_create_unassigned_device_repairs"]');
       hidden.value = checkbox?.checked ? "true" : "";
       areas.create_unassigned_device_repairs = Boolean(checkbox?.checked);
+    }, true);
+    form.addEventListener("submit", () => {
+      ["entity_ids", "exposed"].forEach((module) => {
+        config.modules[module].settings = {
+          ...modulePolicy(module),
+          include_in_overview: form.querySelector(
+            `input[name="${module}_include_overview"]`,
+          )?.checked !== false,
+        };
+      });
     }, true);
     const settingsActions = form.querySelector(".settings-actions");
     const cardsByTitle = Object.fromEntries([...form.querySelectorAll(".settings-card")]

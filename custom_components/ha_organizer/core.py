@@ -847,8 +847,23 @@ def scan(snapshot: dict, config: dict, reviews=None) -> dict:  # NOSONAR
     return {"modules": modules}
 
 
-def overview(result: dict) -> dict:
-    all_items = [i for values in result.get("modules", {}).values() for i in values]
+def overview(result: dict, config: dict | None = None) -> dict:
+    module_items = result.get("modules", {})
+    included_modules = {
+        module
+        for module in module_items
+        if config is None
+        or config.get("modules", {})
+        .get(module, {})
+        .get("settings", {})
+        .get("include_in_overview", True)
+    }
+    all_items = [
+        item
+        for module, values in module_items.items()
+        if module in included_modules
+        for item in values
+    ]
     total = len(all_items)
     current = [
         i for i in all_items if i.get("review_status") in ("reviewed", "ignored")

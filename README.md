@@ -30,8 +30,11 @@ modules:
 - **Zones** — reviews names, icons, radius, coordinates, and duplicate geometry.
 - **Labels** — inventories label names, icons, and colors.
 - **Entity IDs** — compares entity IDs with the naming policy configured in the
-  Organizer.
+  Organizer. **BETA:** Settings includes an option to exclude this module from
+  Overview totals while keeping it in the Recommended organization flow.
 - **Exposed & Aliases** — finds collisions among exposed names and aliases.
+  **BETA:** Settings includes an option to exclude this module from Overview
+  totals while keeping it in the Recommended organization flow.
 
 All modules are opt-in through the **Settings** page. The integration does not
 rename, create, delete, or otherwise modify Home Assistant resources.

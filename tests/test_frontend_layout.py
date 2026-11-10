@@ -55,3 +55,12 @@ def test_label_names_link_to_filtered_home_assistant_entities():
     )
     assert 'class="label-entity-link" href="${labelEntityLink}"' in source
     assert 'icon="mdi:devices" aria-hidden="true"' in source
+
+
+def test_beta_module_overview_options_are_saved_from_settings():
+    source = FRONTEND.read_text(encoding="utf-8")
+
+    assert 'name="${module}_include_overview"' in source
+    assert '"Entity IDs": "entity_ids"' in source
+    assert '"Exposed & Aliases": "exposed"' in source
+    assert 'include_in_overview: form.querySelector' in source

@@ -31,6 +31,16 @@ def test_merge_config_accepts_and_rejects_policy_values():
                 }
             }
         },
+        {
+            "modules": {
+                "entity_ids": {"settings": {"include_in_overview": "yes"}}
+            }
+        },
+        {
+            "modules": {
+                "exposed": {"settings": {"include_in_overview": "yes"}}
+            }
+        },
     ):
         with pytest.raises(ValueError):
             websocket._merge_config(invalid)

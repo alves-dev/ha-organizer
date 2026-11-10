@@ -2,6 +2,13 @@
 
 All notable changes to HA Organizer are documented in this file.
 
+## [2026.11.2] - 2026-11-10
+
+### Added
+
+- Added a filtered Home Assistant Entities link to each Label name, with a
+  devices icon and tooltip to make the navigation visible.
+
 ## [2026.11.1] - 2026-11-10
 
 ### Changed

@@ -172,6 +172,14 @@ def _validate_module_settings(modules):
             raise ValueError(
                 f"modules.{module}.settings.create_repairs must be boolean"
             )
+    for module in ("entity_ids", "exposed"):
+        settings = modules.get(module, {}).get("settings", {})
+        if "include_in_overview" in settings and not isinstance(
+            settings["include_in_overview"], bool
+        ):
+            raise ValueError(
+                f"modules.{module}.settings.include_in_overview must be boolean"
+            )
 
 
 def _validate_config_shape(config):  # noqa: PLR0912  # NOSONAR
@@ -800,7 +808,8 @@ def async_register_websocket_commands(hass: HomeAssistant):  # noqa: PLR0915  # 
             return connection.send_error(msg["id"], "not_allowed", ADMIN_REQUIRED)
         _, data = await _store(hass)
         connection.send_result(
-            msg["id"], overview(data.get("last_scan") or {"modules": {}})
+            msg["id"],
+            overview(data.get("last_scan") or {"modules": {}}, data.get("config")),
         )
 
     # The decorator validates command messages; registration is explicit in the

@@ -79,6 +79,41 @@ def test_overview_has_separate_counters():
     assert data["review"]["pending"] == 1 and data["compliance"]["compliant"] == 1
 
 
+def test_overview_can_exclude_beta_modules_without_changing_flow_progress():
+    data = overview(
+        {
+            "modules": {
+                "areas": [
+                    {"review_status": "reviewed", "compliance_status": "compliant"}
+                ],
+                "entity_ids": [
+                    {"review_status": "pending", "compliance_status": "attention"}
+                ],
+                "exposed": [
+                    {
+                        "review_status": "pending",
+                        "compliance_status": "non_compliant",
+                    }
+                ],
+            }
+        },
+        {
+            "modules": {
+                "areas": {"settings": {}},
+                "entity_ids": {"settings": {"include_in_overview": False}},
+                "exposed": {"settings": {"include_in_overview": False}},
+            }
+        },
+    )
+
+    assert data["total"] == 1
+    assert data["compliance"]["attention"] == 0
+    assert data["compliance"]["non_compliant"] == 0
+    assert data["review_progress"] == 1
+    assert data["module_progress"]["entity_ids"]["total"] == 1
+    assert data["module_progress"]["exposed"]["total"] == 1
+
+
 def test_overview_exposes_area_and_zone_progress_details():
     data = overview(
         {

@@ -1,7 +1,12 @@
 # Changelog
 
-## 2026-11-10
+## 2026-11-10 — 2026.11.2
 
+- Added a filtered Home Assistant Entities link to each Label name, using the
+  label identifier to show the devices assigned to that label.
+- Added a devices icon and tooltip beside each Label name to make the filtered
+  navigation link visible.
+- Bumped the integration and frontend cache-busting version to `2026.11.2`.
 - Fixed dark-theme styling for the detailed module-progress cards by using the
   Home Assistant theme tokens and bumped the integration and frontend
   cache-busting version to `2026.11.1`.

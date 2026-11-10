@@ -36,10 +36,39 @@ def test_dynamic_label_values_are_excluded_from_localization():
 
     assert 'closest("[data-no-localize]")' in source
     assert (
-        '<strong><span data-no-localize>${escapeHtml(item.title)}</span></strong>'
+        '<span data-no-localize>${escapeHtml(item.title)}</span>'
         in source
     )
     assert (
         'Description: <span data-no-localize>${escapeHtml(item.description)}</span>'
         in source
     )
+
+
+def test_label_names_link_to_filtered_home_assistant_entities():
+    source = FRONTEND.read_text(encoding="utf-8")
+
+    assert (
+        'const labelEntityLink = item.module === "labels" ? '
+        '`/config/entities?sort=name&group=device&label=${encodeURIComponent(item.id)}`'
+        in source
+    )
+    assert 'class="label-entity-link" href="${labelEntityLink}"' in source
+    assert 'icon="mdi:devices" aria-hidden="true"' in source
+
+
+def test_beta_module_overview_options_are_saved_from_settings():
+    source = FRONTEND.read_text(encoding="utf-8")
+
+    assert 'name="${module}_include_overview"' in source
+    assert '"Entity IDs": "entity_ids"' in source
+    assert '"Exposed & Aliases": "exposed"' in source
+    assert 'include_in_overview: form.querySelector' in source
+
+
+def test_completed_overview_has_success_state_and_check_icon():
+    source = FRONTEND.read_text(encoding="utf-8")
+
+    assert 'reviewed === 100 ? "hero-complete"' in source
+    assert 'icon="mdi:check-circle-outline"' in source
+    assert ".hero.hero-complete" in source

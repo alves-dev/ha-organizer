@@ -16,7 +16,7 @@ DEFAULT_MODULES = {
                 ),
             }
             if module in REPAIR_MODULES
-            else {}
+            else {"include_in_overview": True}
         ),
     }
     for module in MODULES

@@ -11,7 +11,7 @@ native Home Assistant screens where changes can be made manually.
 
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.8%2B-41BDF5?logo=homeassistant)
 ![Marketplace](https://img.shields.io/badge/Marketplace-Default%20Repository-18BC9C?style=flat-square)
-![Version](https://img.shields.io/badge/Version-2026.11.1-41BDF5?style=flat-square)
+![Version](https://img.shields.io/badge/Version-2026.11.2-41BDF5?style=flat-square)
 [![Quality Gate](https://sonar.alves-dev.com/api/project_badges/measure?project=ha-organizer&metric=alert_status)](https://sonar.alves-dev.com/dashboard?id=ha-organizer)
 [![Coverage](https://sonar.alves-dev.com/api/project_badges/measure?project=ha-organizer&metric=coverage)](https://sonar.alves-dev.com/dashboard?id=ha-organizer)
 
@@ -30,8 +30,11 @@ modules:
 - **Zones** — reviews names, icons, radius, coordinates, and duplicate geometry.
 - **Labels** — inventories label names, icons, and colors.
 - **Entity IDs** — compares entity IDs with the naming policy configured in the
-  Organizer.
+  Organizer. **BETA:** Settings includes an option to exclude this module from
+  Overview totals while keeping it in the Recommended organization flow.
 - **Exposed & Aliases** — finds collisions among exposed names and aliases.
+  **BETA:** Settings includes an option to exclude this module from Overview
+  totals while keeping it in the Recommended organization flow.
 
 All modules are opt-in through the **Settings** page. The integration does not
 rename, create, delete, or otherwise modify Home Assistant resources.
@@ -159,7 +162,7 @@ review progress: review and ignore actions update only Organizer-owned state.
 
 ## Compatibility
 
-HA Organizer `2026.11.1` requires Home Assistant `2026.8.0` or newer. See the
+HA Organizer `2026.11.2` requires Home Assistant `2026.8.0` or newer. See the
 [compatibility matrix](docs/compatibility.md) for tested combinations and
 release guidance.
 

@@ -36,10 +36,22 @@ def test_dynamic_label_values_are_excluded_from_localization():
 
     assert 'closest("[data-no-localize]")' in source
     assert (
-        '<strong><span data-no-localize>${escapeHtml(item.title)}</span></strong>'
+        '<span data-no-localize>${escapeHtml(item.title)}</span>'
         in source
     )
     assert (
         'Description: <span data-no-localize>${escapeHtml(item.description)}</span>'
         in source
     )
+
+
+def test_label_names_link_to_filtered_home_assistant_entities():
+    source = FRONTEND.read_text(encoding="utf-8")
+
+    assert (
+        'const labelEntityLink = item.module === "labels" ? '
+        '`/config/entities?sort=name&group=device&label=${encodeURIComponent(item.id)}`'
+        in source
+    )
+    assert 'class="label-entity-link" href="${labelEntityLink}"' in source
+    assert 'icon="mdi:devices" aria-hidden="true"' in source
